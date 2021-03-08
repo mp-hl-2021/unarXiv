@@ -4,9 +4,25 @@ package api;
 
 option go_package = "github.com/mp-hl-2021/unarXiv;api";
 
-service auth {
-  rpc register(AuthenticationRequest) returns (AuthenticationData);
-  rpc login(AuthenticationRequest) returns (AuthenticationData);
+service unarXiv {
+  rpc Register(AuthenticationRequest) returns (AuthenticationData);
+  rpc Login(AuthenticationRequest) returns (AuthenticationData);
+
+  rpc Search(SearchQueryRequest) returns (SearchQueryResponse);
+
+  rpc SetArticleSubscriptionStatus(SetArticleSubscriptionStatusRequest) returns (ArticleSubscriptionStatus);
+  rpc GetArticleSubscriptionStatus(GetArticleSubscriptionStatusRequest) returns (ArticleSubscriptionStatus);
+  rpc SetSearchQuerySubscriptionStatus(SetSearchQuerySubscriptionStatusRequest) returns (SearchQuerySubscriptionStatus);
+  rpc GetSearchQuerySubscriptionStatus(GetSearchQuerySubscriptionStatusRequest) returns (SearchQuerySubscriptionStatus);
+
+  rpc GetArticlesUpdates(AuthenticationData) returns (GetArticlesUpdatesResponse);
+  rpc AccessArticle(AccessArticleRequest) returns (AccessArticleResponse);
+
+  rpc GetSearchQueriesUpdates(AuthenticationData) returns (GetSearchQueriesUpdatesResponse);
+  // rpc AccessSearchQuery(SearchQueryRequest) -> just Search()
+
+  rpc GetSearchHistory(AuthenticationData) returns (GetSearchHistoryResponse);
+  rpc GetArticlesHistory(AuthenticationData) returns (GetArticlesHistoryResponse);
 }
 
 message AuthenticationRequest {
@@ -18,28 +34,33 @@ message AuthenticationData {
   string jwt = 1;
 }
 
-service unarXiv {
-  rpc search(SearchQueryRequest) returns (SearchQueryResponse);
+message ArticleMetaInfo {
+  string title = 1;
+  string authors = 2;
+  string absId = 3;
+  string abstract = 4;
 
-  rpc setArticleSubscriptionStatus(SetArticleSubscriptionStatusRequest) returns (ArticleSubscriptionStatus);
-  rpc getArticleSubscriptionStatus(GetArticleSubscriptionStatusRequest) returns (ArticleSubscriptionStatus);
-  rpc setSearchQuerySubscriptionStatus(SetSearchQuerySubscriptionStatusRequest) returns (SearchQuerySubscriptionStatus);
-  rpc getSearchQuerySubscriptionStatus(GetSearchQuerySubscriptionStatusRequest) returns (SearchQuerySubscriptionStatus);
+  uint64 lastUpdateTimestamp = 15;
 
-
-  rpc getArticlesUpdates(AuthenticationData) returns (GetArticleUpdatesResponse);
-  rpc accessArticle(AccessArticleRequest) returns (AccessArticleResponse);
+  // these fields are present if user is authenticated
+  optional bool subscribed = 20;
+  optional uint64 lastAccessedTimestamp = 21;
 }
+
 
 message SearchQueryRequest {
   string query = 1;
-  optional AuthenticationData authData = 2;
-  optional uint32 offset = 3;
+  optional uint32 offset = 2;
+
+  // these fields are present if user is authenticated
+  optional AuthenticationData authData = 20;
 }
 
 message SearchQueryResponse {
   uint32 totalMatchesCount = 2;
   repeated SearchQueryResponseItem matches = 3;
+  // these fields are present if user is authenticated
+  optional uint64 lastAccessedTimestamp = 21; // this field is present if user is subscribed for the search query
 }
 
 message SearchQueryResponseItem {
@@ -78,7 +99,7 @@ message SearchQuerySubscriptionStatus {
   bool isSubscribedNow = 2;
 }
 
-message GetArticleUpdatesResponse {
+message GetArticlesUpdatesResponse {
   repeated ArticleMetaInfo articles = 1;
 }
 
@@ -91,16 +112,27 @@ message AccessArticleResponse {
   ArticleMetaInfo article = 1;
 }
 
+message GetSearchQueriesUpdatesResponse {
+  repeated GetSearchQueriesUpdatesResponseItem updates = 1;
+}
 
+message GetSearchQueriesUpdatesResponseItem {
+  string query = 1;
+  optional uint64 lastNewArticleTimestamp = 2; // presents if there's at least 1 article that matches the query
+  uint64 lastAccessedTimestamp = 3;
+  optional uint32 newArticlesCount = 4;
+}
 
-message ArticleMetaInfo {
-  string title = 1;
-  string authors = 2;
-  string absId = 3;
+message GetSearchHistoryResponse {
+  repeated GetSearchHistoryResponseItem items = 1;
+}
 
-  uint64 lastUpdateTimestamp = 15;
+message GetSearchHistoryResponseItem {
+  string query = 1;
+  bool subscribed = 2;
+  uint64 accessedTimestamp = 3;
+}
 
-  // these fields are present if user is authenticated
-  optional bool subscribed = 20;
-  optional uint64 lastAccessedTimestamp = 21;
+message GetArticlesHistoryResponse {
+  repeated ArticleMetaInfo articles = 1;
 }
