@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package api;
+
+option go_package = "github.com/mp-hl-2021/unarXiv;api";
+
+service auth {
+  rpc register(AuthenticationRequest) returns (AuthenticationData);
+  rpc login(AuthenticationRequest) returns (AuthenticationData);
+}
+
+message AuthenticationRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message AuthenticationData {
+  string jwt = 1;
+}
+
+service unarXiv {
+  rpc search(SearchQueryRequest) returns (SearchQueryResponse);
+
+  rpc setArticleSubscriptionStatus(SetArticleSubscriptionStatusRequest) returns (ArticleSubscriptionStatus);
+  rpc getArticleSubscriptionStatus(GetArticleSubscriptionStatusRequest) returns (ArticleSubscriptionStatus);
+  rpc setSearchQuerySubscriptionStatus(SetSearchQuerySubscriptionStatusRequest) returns (SearchQuerySubscriptionStatus);
+  rpc getSearchQuerySubscriptionStatus(GetSearchQuerySubscriptionStatusRequest) returns (SearchQuerySubscriptionStatus);
+
+
+  rpc getArticlesUpdates(AuthenticationData) returns (GetArticleUpdatesResponse);
+  rpc accessArticle(AccessArticleRequest) returns (AccessArticleResponse);
+}
+
+message SearchQueryRequest {
+  string query = 1;
+  optional AuthenticationData authData = 2;
+  optional uint32 offset = 3;
+}
+
+message SearchQueryResponse {
+  uint32 totalMatchesCount = 2;
+  repeated SearchQueryResponseItem matches = 3;
+}
+
+message SearchQueryResponseItem {
+  ArticleMetaInfo article = 1;
+}
+
+message SetArticleSubscriptionStatusRequest {
+  AuthenticationData authData = 1;
+  string absId = 2;
+  bool subscribe = 3;
+}
+
+message GetArticleSubscriptionStatusRequest {
+  AuthenticationData authData = 1;
+  string absId = 2;
+}
+
+message ArticleSubscriptionStatus {
+  string absId = 1;
+  bool isSubscribedNow = 2;
+}
+
+message SetSearchQuerySubscriptionStatusRequest {
+  AuthenticationData authData = 1;
+  string query = 2;
+  bool subscribe = 3;
+}
+
+message GetSearchQuerySubscriptionStatusRequest {
+  AuthenticationData authData = 1;
+  string query = 2;
+}
+
+message SearchQuerySubscriptionStatus {
+  string query = 1;
+  bool isSubscribedNow = 2;
+}
+
+message GetArticleUpdatesResponse {
+  repeated ArticleMetaInfo articles = 1;
+}
+
+message AccessArticleRequest {
+  AuthenticationData authData = 1;
+  string absId = 2;
+}
+
+message AccessArticleResponse {
+  ArticleMetaInfo article = 1;
+}
+
+
+
+message ArticleMetaInfo {
+  string title = 1;
+  string authors = 2;
+  string absId = 3;
+
+  uint64 lastUpdateTimestamp = 15;
+
+  // these fields are present if user is authenticated
+  optional bool subscribed = 20;
+  optional uint64 lastAccessedTimestamp = 21;
+}
