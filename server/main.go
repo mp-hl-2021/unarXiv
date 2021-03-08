@@ -62,3 +62,16 @@ func (e *UnarXivServer) GetArticlesUpdates(_ context.Context, r *api.Authenticat
 func (e *UnarXivServer) AccessArticle(_ context.Context, r *api.AccessArticleRequest) (*api.AccessArticleResponse, error) {
     return &api.AccessArticleResponse{Article: &api.ArticleMetaInfo{Title: "placeholder", Authors: "placeholder", AbsId: "0", Abstract: "placeholder", LastUpdateTimestamp: 0}}, nil
 }
+
+func (e *UnarXivServer) GetSearchQueriesUpdates(_ context.Context, r *api.AuthenticationData) (*api.GetSearchQueriesUpdatesResponse, error) {
+    return &api.GetSearchQueriesUpdatesResponse{}, nil
+}
+
+func (e *UnarXivServer) GetSearchHistory(_ context.Context, r *api.AuthenticationData) (*api.GetSearchHistoryResponse, error) {
+    return &api.GetSearchHistoryResponse{}, nil
+}
+
+func (e *UnarXivServer) GetArticlesHistory(_ context.Context, r *api.AuthenticationData) (*api.GetArticlesHistoryResponse, error) {
+    return &api.GetArticlesHistoryResponse{}, nil
+}
+
