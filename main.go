@@ -1,16 +1,16 @@
 package main
 
 import (
-"github.com/mp-hl-2021/unarXiv/api"
-"github.com/mp-hl-2021/unarXiv/server"
-"net/http"
-"time"
+	"github.com/mp-hl-2021/unarXiv/core"
+	"github.com/mp-hl-2021/unarXiv/server"
+	"net/http"
+	"time"
 )
 
 func main() {
-	useCases := api.DummyUseCases{}
+	unarXivAPI := core.DummyUnarXivAPI{}
 
-	service := server.NewApi(useCases)
+	service := server.NewServer(unarXivAPI)
 
 	server := http.Server{
 		Addr:         "localhost:8080",

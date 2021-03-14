@@ -1,6 +1,6 @@
 package api
 
-type UseCasesInterface interface {
+type UnarXiv interface {
 	Register(*AuthenticationRequest) (*AuthenticationData, error)
 	Login(*AuthenticationRequest) (*AuthenticationData, error)
 
@@ -94,7 +94,7 @@ type GetArticlesUpdatesResponse struct {
 }
 
 type AccessArticleRequest struct {
-	AuthData  AuthenticationData `json:"authData"`
+	AuthData  *AuthenticationData `json:"authData,omitempty"`
 	ArticleId string             `json:"articleId"`
 }
 
