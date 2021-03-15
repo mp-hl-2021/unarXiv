@@ -1,14 +1,14 @@
 package main
 
 import (
-	"github.com/mp-hl-2021/unarXiv/core"
 	"github.com/mp-hl-2021/unarXiv/api"
+	"github.com/mp-hl-2021/unarXiv/usecases"
 	"net/http"
 	"time"
 )
 
 func main() {
-	unarXivUseCases := core.DummyUnarXivAPI{}
+	unarXivUseCases := usecases.DummyUnarXivAPI{}
 
 	unarXivApi := api.NewApi(unarXivUseCases)
 

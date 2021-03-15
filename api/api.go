@@ -4,7 +4,6 @@ import (
     "encoding/json"
     "github.com/gorilla/mux"
     "github.com/mp-hl-2021/unarXiv/usecases"
-    "github.com/mp-hl-2021/unarXiv/core"
     "log"
     "net/http"
     "strconv"
@@ -122,7 +121,7 @@ func (a *UnarXivApi) GetSearch(w http.ResponseWriter, r *http.Request) {
         u32offset = uint32(offset)
         searchQueryRequest.Offset = &u32offset
     }
-    searchQueryRequest.AuthData = &core.DummyAuthenticationData // TODO extract auth from headers
+    searchQueryRequest.AuthData = &usecases.DummyAuthenticationData // TODO extract auth from headers
 
     response, err := a.Core.Search(&searchQueryRequest)
     if err != nil {
@@ -144,7 +143,7 @@ func (a *UnarXivApi) GetArticle(w http.ResponseWriter, r *http.Request) {
         return
     }
     articleRequest.ArticleId = r.Form.Get("articleId")
-    articleRequest.AuthData = &core.DummyAuthenticationData // TODO extract auth from headers
+    articleRequest.AuthData = &usecases.DummyAuthenticationData // TODO extract auth from headers
 
     response, err := a.Core.AccessArticle(&articleRequest)
     if err != nil {
@@ -159,7 +158,7 @@ func (a *UnarXivApi) GetArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *UnarXivApi) GetArticlesHistory(w http.ResponseWriter, r *http.Request) {
-    authData := core.DummyAuthenticationData // TODO extract auth from headers
+    authData := usecases.DummyAuthenticationData // TODO extract auth from headers
     response, err := a.Core.GetArticlesHistory(&authData)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
@@ -173,7 +172,7 @@ func (a *UnarXivApi) GetArticlesHistory(w http.ResponseWriter, r *http.Request) 
 }
 
 func (a *UnarXivApi) GetSearchHistory(w http.ResponseWriter, r *http.Request) {
-    authData := core.DummyAuthenticationData // TODO extract auth from headers
+    authData := usecases.DummyAuthenticationData // TODO extract auth from headers
     response, err := a.Core.GetSearchHistory(&authData)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
@@ -187,7 +186,7 @@ func (a *UnarXivApi) GetSearchHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *UnarXivApi) GetSearchQueriesUpdates(w http.ResponseWriter, r *http.Request) {
-    authData := core.DummyAuthenticationData // TODO extract auth from headers
+    authData := usecases.DummyAuthenticationData // TODO extract auth from headers
     response, err := a.Core.GetSearchQueriesUpdates(&authData)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
@@ -201,7 +200,7 @@ func (a *UnarXivApi) GetSearchQueriesUpdates(w http.ResponseWriter, r *http.Requ
 }
 
 func (a *UnarXivApi) GetArticlesUpdates(w http.ResponseWriter, r *http.Request) {
-    authData := core.DummyAuthenticationData // TODO extract auth from headers
+    authData := usecases.DummyAuthenticationData // TODO extract auth from headers
     response, err := a.Core.GetArticlesUpdates(&authData)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
@@ -222,7 +221,7 @@ func (a *UnarXivApi) GetArticleSubscriptionStatus(w http.ResponseWriter, r *http
         return
     }
     getArticleSubscriptionStatusRequest.ArticleId = r.Form.Get("articleId")
-    getArticleSubscriptionStatusRequest.AuthData = core.DummyAuthenticationData // TODO extract auth from headers
+    getArticleSubscriptionStatusRequest.AuthData = usecases.DummyAuthenticationData // TODO extract auth from headers
 
     response, err := a.Core.GetArticleSubscriptionStatus(&getArticleSubscriptionStatusRequest)
     if err != nil {
@@ -254,7 +253,7 @@ func (a *UnarXivApi) PostArticleSubscriptionStatus(w http.ResponseWriter, r *htt
         w.WriteHeader(http.StatusBadRequest)
         return
     }
-    setArticleSubscriptionStatusRequest.AuthData = core.DummyAuthenticationData // TODO extract auth from headers
+    setArticleSubscriptionStatusRequest.AuthData = usecases.DummyAuthenticationData // TODO extract auth from headers
 
     response, err := a.Core.SetArticleSubscriptionStatus(&setArticleSubscriptionStatusRequest)
     if err != nil {
@@ -276,7 +275,7 @@ func (a *UnarXivApi) GetSearchQuerySubscriptionStatus(w http.ResponseWriter, r *
         return
     }
     getSearchQuerySubscriptionStatusRequest.Query = r.Form.Get("query")
-    getSearchQuerySubscriptionStatusRequest.AuthData = core.DummyAuthenticationData // TODO extract auth from headers
+    getSearchQuerySubscriptionStatusRequest.AuthData = usecases.DummyAuthenticationData // TODO extract auth from headers
 
     response, err := a.Core.GetSearchQuerySubscriptionStatus(&getSearchQuerySubscriptionStatusRequest)
     if err != nil {
@@ -307,7 +306,7 @@ func (a *UnarXivApi) PostSearchQuerySubscriptionStatus(w http.ResponseWriter, r 
         w.WriteHeader(http.StatusBadRequest)
         return
     }
-    setSearchQuerySubscriptionStatusRequest.AuthData = core.DummyAuthenticationData // TODO extract auth from headers
+    setSearchQuerySubscriptionStatusRequest.AuthData = usecases.DummyAuthenticationData // TODO extract auth from headers
 
     response, err := a.Core.SetSearchQuerySubscriptionStatus(&setSearchQuerySubscriptionStatusRequest)
     if err != nil {
