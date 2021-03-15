@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dgrijalva/jwt-go"
+	//"github.com/dgrijalva/jwt-go"
 )
 
 type UnarXivServer struct {
@@ -40,12 +40,12 @@ func (server *UnarXivServer) Router() http.Handler {
 
 	router.Path("/subscriptions/articles/{articleId}").
 		HandlerFunc(server.GetArticleSubscriptionStatus).Methods(http.MethodGet)
-	router.Path("/subscriptions/articles/{articleId}").Queries("subscribe", "{subscribe:(true|false)}").
+    router.Path("/subscriptions/articles/{articleId}").Queries("subscribe", "{subscribe:(?:true|false)}").
 		HandlerFunc(server.PostArticleSubscriptionStatus).Methods(http.MethodGet)
 
 	router.Path("/subscriptions/searches").Queries("query", "{query}").
 		HandlerFunc(server.GetSearchQuerySubscriptionStatus).Methods(http.MethodGet)
-	router.Path("/subscriptions/searches").Queries("query", "{query}", "subscribe", "{subscribe:(true|false)}").
+    router.Path("/subscriptions/searches").Queries("query", "{query}", "subscribe", "{subscribe:(?:true|false)}").
 		HandlerFunc(server.PostSearchQuerySubscriptionStatus).Methods(http.MethodPost)
 
 	return router
@@ -80,7 +80,7 @@ func (server *UnarXivServer) PostRegister(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := RespondWithJSON(w, authData, http.StatusCreated); err != nil {
+	if err := RespondWithJSON(w, &authData, http.StatusCreated); err != nil {
 		log.Printf("Error happened while responding to PostRegister: %v", err)
 	}
 }
@@ -100,7 +100,7 @@ func (server *UnarXivServer) PostLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := RespondWithJSON(w, authData, http.StatusOK); err != nil {
+	if err := RespondWithJSON(w, &authData, http.StatusOK); err != nil {
 		log.Printf("Error happened while responding to PostLogin: %v", err)
 	}
 }
@@ -138,73 +138,107 @@ func (server *UnarXivServer) GetArticle(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	response, err := server.Core.AccessArtice(articleRequest)
+	response, err := server.Core.AccessArticle(&articleRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	WriteJson(&w, []byte(response))
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+	w.WriteHeader(http.StatusOK)
+}
+
+var dummyAuthenticationData = api.AuthenticationData{
+	Jwt: "jwt",
 }
 
 func (server *UnarXivServer) GetArticlesHistory(w http.ResponseWriter, r *http.Request) {
-	authData := api.AuthenticationData("jwt") // TODO extract data from headers
-	response, err := server.Core.GetArticlesHistory(authData)
+	authData := api.AuthenticationData(dummyAuthenticationData) // TODO extract data from headers
+	response, err := server.Core.GetArticlesHistory(&authData)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	WriteJson(&w, []byte(response))
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+	w.WriteHeader(http.StatusOK)
 }
 
 func (server *UnarXivServer) GetSearchHistory(w http.ResponseWriter, r *http.Request) {
-	authData := api.AuthenticationData("jwt") // TODO extract data from headers
-	response, err := server.Core.GetSearchHistory(authData)
+	authData := api.AuthenticationData(dummyAuthenticationData) // TODO extract data from headers
+	response, err := server.Core.GetSearchHistory(&authData)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	WriteJson(&w, []byte(response))
+	w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+	w.WriteHeader(http.StatusOK)
 }
 
 func (server *UnarXivServer) GetSearchQueriesUpdates(w http.ResponseWriter, r *http.Request) {
-	authData := api.AuthenticationData("jwt") // TODO extract data from headers
-	response, err := server.Core.GetSearchQueriesUpdates(authData)
+	authData := api.AuthenticationData(dummyAuthenticationData) // TODO extract data from headers
+	response, err := server.Core.GetSearchQueriesUpdates(&authData)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	WriteJson(&w, []byte(response))
+	w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+	w.WriteHeader(http.StatusOK)
 }
 
 func (server *UnarXivServer) GetArticlesUpdates(w http.ResponseWriter, r *http.Request) {
-	authData = api.AuthenticationData("jwt") // TODO extract data from headers
-	response, err := server.Core.GetArticlesUpdates(authData)
+    authData := api.AuthenticationData(dummyAuthenticationData) // TODO extract data from headers
+	response, err := server.Core.GetArticlesUpdates(&authData)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	WriteJson(&w, []byte(response))
+	w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+	w.WriteHeader(http.StatusOK)
 }
 
 func (server *UnarXivServer) GetArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-	var artRequest api.SetArticleSubscriptionStatusRequest
+	var artRequest api.GetArticleSubscriptionStatusRequest
 	if err := json.NewDecoder(r.Body).Decode(&artRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	response, err := server.Core.GetArticleSubscriptionStatus(artRequest)
+	response, err := server.Core.GetArticleSubscriptionStatus(&artRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	WriteJson(&w, []byte(response))
+	w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+	w.WriteHeader(http.StatusOK)
 }
 
 func (server *UnarXivServer) PostArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
@@ -214,43 +248,58 @@ func (server *UnarXivServer) PostArticleSubscriptionStatus(w http.ResponseWriter
 		return
 	}
 
-	err := server.Core.AccessArtice(artRequest)
+	response, err := server.Core.SetArticleSubscriptionStatus(&artRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
 	w.WriteHeader(http.StatusOK)
 }
 
 func (server *UnarXivServer) GetSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
+	var s api.GetSearchQuerySubscriptionStatusRequest
+	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	response, err := server.Core.GetSearchQuerySubscriptionStatus(&s)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+	w.WriteHeader(http.StatusOK)
+}
+
+func (server *UnarXivServer) PostSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
 	var s api.SetSearchQuerySubscriptionStatusRequest
 	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	response, err := server.Core.AccessArtice(s)
+	response, err := server.Core.SetSearchQuerySubscriptionStatus(&s)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	WriteJson(&w, []byte(response))
-}
-
-func (server *UnarXivServer) PostSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-	var s api.AccessArticleRequest
-	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	err := server.Core.SetSearchQuerySubscriptionStatus(S)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(response); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
 	w.WriteHeader(http.StatusOK)
 }

@@ -67,7 +67,7 @@ var dummyGetArticlesUpdatesResponse = api.GetArticlesUpdatesResponse{
 }
 
 var dummyAccessArticleRequest = api.AccessArticleRequest{
-	AuthData:  dummyAuthenticationData,
+	AuthData:  &dummyAuthenticationData,
 	ArticleId: "articleId",
 }
 
