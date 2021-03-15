@@ -5,74 +5,42 @@ import "github.com/mp-hl-2021/unarXiv/api"
 var dummyUint32 uint32 = 0
 var dummyUint64 uint64 = 0
 
-var dummyAuthenticationRequest = api.AuthenticationRequest{
-    Login:    "login",
-    Password: "password",
-}
-
-var dummyAuthenticationData = api.AuthenticationData{
+var DummyAuthenticationData = api.AuthenticationData{
     Jwt: "jwt",
 }
 
-var dummyArticleUserMetaInfo = api.ArticleUserMetaInfo{
+var DummyArticleUserMetaInfo = api.ArticleUserMetaInfo{
     IsSubscribed: true,
 }
 
-var dummyArticleMetaInfo = api.ArticleMetaInfo{
+var DummyArticleMetaInfo = api.ArticleMetaInfo{
     Title:        "title",
     Authors:      "authors",
     ArticleId:    "articleId",
     Abstract:     "abstract",
-    UserMetaInfo: &dummyArticleUserMetaInfo,
-}
-
-var dummySearchQueryRequest = api.SearchQueryRequest{
-    Query:    "query",
-    Offset:   &dummyUint32,
-    AuthData: &dummyAuthenticationData,
+    UserMetaInfo: &DummyArticleUserMetaInfo,
 }
 
 var dummySearchQueryResponseItem = api.SearchQueryResponseItem{
-    Article: dummyArticleMetaInfo,
+    Article: DummyArticleMetaInfo,
 }
 
-var dummySearchQueryUserMetaInfo = api.SearchQueryUserMetaInfo{
+var DummySearchQueryUserMetaInfo = api.SearchQueryUserMetaInfo{
     IsSubscribed: true,
 }
 
-var dummySearchQueryResponse = api.SearchQueryResponse{
+var DummySearchQueryResponse = api.SearchQueryResponse{
     TotalMatchesCount: 1,
     Matches:           []api.SearchQueryResponseItem{dummySearchQueryResponseItem},
-    UserMetaInfo:      &dummySearchQueryUserMetaInfo,
-}
-
-var dummyGetArticleSubscriptionStatusRequest = api.GetArticleSubscriptionStatusRequest{
-    AuthData:  dummyAuthenticationData,
-    ArticleId: "articleId",
-}
-
-var dummySetSearchQuerySubscriptionStatusRequest = api.SetSearchQuerySubscriptionStatusRequest{
-    AuthData:  dummyAuthenticationData,
-    Query:     "query",
-    Subscribe: true,
-}
-
-var dummyGetSearchQuerySubscriptionStatusRequest = api.GetSearchQuerySubscriptionStatusRequest{
-    AuthData: dummyAuthenticationData,
-    Query:    "query",
+    UserMetaInfo:      &DummySearchQueryUserMetaInfo,
 }
 
 var dummyGetArticlesUpdatesResponse = api.GetArticlesUpdatesResponse{
-    UpdatedArticles: []api.ArticleMetaInfo{dummyArticleMetaInfo},
-}
-
-var dummyAccessArticleRequest = api.AccessArticleRequest{
-    AuthData:  &dummyAuthenticationData,
-    ArticleId: "articleId",
+    UpdatedArticles: []api.ArticleMetaInfo{DummyArticleMetaInfo},
 }
 
 var dummyAccessArticleResponse = api.AccessArticleResponse{
-    Article: dummyArticleMetaInfo,
+    Article: DummyArticleMetaInfo,
 }
 
 var dummyGetSearchQueriesUpdatesResponse = api.GetSearchQueriesUpdatesResponse{
@@ -91,36 +59,36 @@ var dummyGetSearchHistoryResponse = api.GetSearchHistoryResponse{
 
 var dummyGetSearchHistoryResponseItem = api.GetSearchHistoryResponseItem{
     Query:        "query",
-    UserMetaInfo: dummySearchQueryUserMetaInfo,
+    UserMetaInfo: DummySearchQueryUserMetaInfo,
 }
 
 var dummyGetAccessedArticlesHistoryResponse = api.GetAccessedArticlesHistoryResponse{
-    AccessedArticlesHistory: []api.ArticleMetaInfo{dummyArticleMetaInfo},
+    AccessedArticlesHistory: []api.ArticleMetaInfo{DummyArticleMetaInfo},
 }
 
 type DummyUnarXivAPI struct{}
 
 func (DummyUnarXivAPI) Register(*api.AuthenticationRequest) (*api.AuthenticationData, error) {
-    return &dummyAuthenticationData, nil
+    return &DummyAuthenticationData, nil
 }
 func (DummyUnarXivAPI) Login(*api.AuthenticationRequest) (*api.AuthenticationData, error) {
-    return &dummyAuthenticationData, nil
+    return &DummyAuthenticationData, nil
 }
 func (DummyUnarXivAPI) Search(*api.SearchQueryRequest) (*api.SearchQueryResponse, error) {
-    return &dummySearchQueryResponse, nil
+    return &DummySearchQueryResponse, nil
 }
 
 func (DummyUnarXivAPI) SetArticleSubscriptionStatus(*api.SetArticleSubscriptionStatusRequest) (*api.ArticleUserMetaInfo, error) {
-    return &dummyArticleUserMetaInfo, nil
+    return &DummyArticleUserMetaInfo, nil
 }
 func (DummyUnarXivAPI) GetArticleSubscriptionStatus(*api.GetArticleSubscriptionStatusRequest) (*api.ArticleUserMetaInfo, error) {
-    return &dummyArticleUserMetaInfo, nil
+    return &DummyArticleUserMetaInfo, nil
 }
 func (DummyUnarXivAPI) SetSearchQuerySubscriptionStatus(*api.SetSearchQuerySubscriptionStatusRequest) (*api.SearchQueryUserMetaInfo, error) {
-    return &dummySearchQueryUserMetaInfo, nil
+    return &DummySearchQueryUserMetaInfo, nil
 }
 func (DummyUnarXivAPI) GetSearchQuerySubscriptionStatus(*api.GetSearchQuerySubscriptionStatusRequest) (*api.SearchQueryUserMetaInfo, error) {
-    return &dummySearchQueryUserMetaInfo, nil
+    return &DummySearchQueryUserMetaInfo, nil
 }
 
 func (DummyUnarXivAPI) GetArticlesUpdates(*api.AuthenticationData) (*api.GetArticlesUpdatesResponse, error) {

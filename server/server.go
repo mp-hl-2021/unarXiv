@@ -4,8 +4,10 @@ import (
     "encoding/json"
     "github.com/gorilla/mux"
     "github.com/mp-hl-2021/unarXiv/api"
+    "github.com/mp-hl-2021/unarXiv/core"
     "log"
     "net/http"
+    "strconv"
 
     //"github.com/dgrijalva/jwt-go"
 )
@@ -41,7 +43,7 @@ func (server *UnarXivServer) Router() http.Handler {
     router.Path("/subscriptions/articles/{articleId}").
         HandlerFunc(server.GetArticleSubscriptionStatus).Methods(http.MethodGet)
     router.Path("/subscriptions/articles/{articleId}").Queries("subscribe", "{subscribe:(?:true|false)}").
-        HandlerFunc(server.PostArticleSubscriptionStatus).Methods(http.MethodGet)
+        HandlerFunc(server.PostArticleSubscriptionStatus).Methods(http.MethodPost)
 
     router.Path("/subscriptions/searches").Queries("query", "{query}").
         HandlerFunc(server.GetSearchQuerySubscriptionStatus).Methods(http.MethodGet)
@@ -113,11 +115,13 @@ func (server *UnarXivServer) GetSearch(w http.ResponseWriter, r *http.Request) {
         return
     }
     searchQueryRequest.Query = r.Form.Get("query")
-    // todo: extract auth ?
-    if err := json.NewDecoder(r.Body).Decode(&searchQueryRequest); err != nil {
-        w.WriteHeader(http.StatusBadRequest)
-        return
+    offset, err := strconv.Atoi(r.Form.Get("offset"))
+    if err != nil && offset > 0 {
+        var u32offset uint32
+        u32offset = uint32(offset)
+        searchQueryRequest.Offset = &u32offset
     }
+    searchQueryRequest.AuthData = &core.DummyAuthenticationData // TODO extract auth from headers
 
     response, err := server.Core.Search(&searchQueryRequest)
     if err != nil {
@@ -133,14 +137,18 @@ func (server *UnarXivServer) GetSearch(w http.ResponseWriter, r *http.Request) {
 
 func (server *UnarXivServer) GetArticle(w http.ResponseWriter, r *http.Request) {
     var articleRequest api.AccessArticleRequest
-    if err := json.NewDecoder(r.Body).Decode(&articleRequest); err != nil {
+    if err := r.ParseForm(); err != nil {
         w.WriteHeader(http.StatusBadRequest)
+        log.Printf("Error happened while parsing form params: %v", err)
         return
     }
+    articleRequest.ArticleId = r.Form.Get("articleId")
+    articleRequest.AuthData = &core.DummyAuthenticationData // TODO extract auth from headers
 
     response, err := server.Core.AccessArticle(&articleRequest)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        log.Printf("Error happened in Core.AccessArticle: %v", err)
         return
     }
 
@@ -149,15 +157,12 @@ func (server *UnarXivServer) GetArticle(w http.ResponseWriter, r *http.Request) 
     }
 }
 
-var dummyAuthenticationData = api.AuthenticationData{
-    Jwt: "jwt",
-}
-
 func (server *UnarXivServer) GetArticlesHistory(w http.ResponseWriter, r *http.Request) {
-    authData := api.AuthenticationData(dummyAuthenticationData) // TODO extract data from headers
+    authData := core.DummyAuthenticationData // TODO extract auth from headers
     response, err := server.Core.GetArticlesHistory(&authData)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        log.Printf("Error happened in Core.GetArticlesHistory: %v", err)
         return
     }
 
@@ -167,10 +172,11 @@ func (server *UnarXivServer) GetArticlesHistory(w http.ResponseWriter, r *http.R
 }
 
 func (server *UnarXivServer) GetSearchHistory(w http.ResponseWriter, r *http.Request) {
-    authData := api.AuthenticationData(dummyAuthenticationData) // TODO extract data from headers
+    authData := core.DummyAuthenticationData // TODO extract auth from headers
     response, err := server.Core.GetSearchHistory(&authData)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        log.Printf("Error happened in Core.GetSearchHistory: %v", err)
         return
     }
 
@@ -180,10 +186,11 @@ func (server *UnarXivServer) GetSearchHistory(w http.ResponseWriter, r *http.Req
 }
 
 func (server *UnarXivServer) GetSearchQueriesUpdates(w http.ResponseWriter, r *http.Request) {
-    authData := api.AuthenticationData(dummyAuthenticationData) // TODO extract data from headers
+    authData := core.DummyAuthenticationData // TODO extract auth from headers
     response, err := server.Core.GetSearchQueriesUpdates(&authData)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        log.Printf("Error happened in Core.GetSearchQueriesUpdates: %v", err)
         return
     }
 
@@ -193,10 +200,11 @@ func (server *UnarXivServer) GetSearchQueriesUpdates(w http.ResponseWriter, r *h
 }
 
 func (server *UnarXivServer) GetArticlesUpdates(w http.ResponseWriter, r *http.Request) {
-    authData := api.AuthenticationData(dummyAuthenticationData) // TODO extract data from headers
+    authData := core.DummyAuthenticationData // TODO extract auth from headers
     response, err := server.Core.GetArticlesUpdates(&authData)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        log.Printf("Error happened in Core.GetArticlesUpdates: %v", err)
         return
     }
 
@@ -206,15 +214,19 @@ func (server *UnarXivServer) GetArticlesUpdates(w http.ResponseWriter, r *http.R
 }
 
 func (server *UnarXivServer) GetArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-    var artRequest api.GetArticleSubscriptionStatusRequest
-    if err := json.NewDecoder(r.Body).Decode(&artRequest); err != nil {
+    var getArticleSubscriptionStatusRequest api.GetArticleSubscriptionStatusRequest
+    if err := r.ParseForm(); err != nil {
         w.WriteHeader(http.StatusBadRequest)
+        log.Printf("Error happened while parsing form params: %v", err)
         return
     }
+    getArticleSubscriptionStatusRequest.ArticleId = r.Form.Get("articleId")
+    getArticleSubscriptionStatusRequest.AuthData = core.DummyAuthenticationData // TODO extract auth from headers
 
-    response, err := server.Core.GetArticleSubscriptionStatus(&artRequest)
+    response, err := server.Core.GetArticleSubscriptionStatus(&getArticleSubscriptionStatusRequest)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        log.Printf("Error happened in Core.GetArticleSubscriptionStatus: %v", err)
         return
     }
 
@@ -224,15 +236,29 @@ func (server *UnarXivServer) GetArticleSubscriptionStatus(w http.ResponseWriter,
 }
 
 func (server *UnarXivServer) PostArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-    var artRequest api.SetArticleSubscriptionStatusRequest
-    if err := json.NewDecoder(r.Body).Decode(&artRequest); err != nil {
+    var setArticleSubscriptionStatusRequest api.SetArticleSubscriptionStatusRequest
+
+    if err := r.ParseForm(); err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        log.Printf("Error happened while parsing form params: %v", err)
+        return
+    }
+    setArticleSubscriptionStatusRequest.ArticleId = r.Form.Get("articleId")
+    subscribe := r.Form.Get("subscribe")
+    if subscribe == "true" {
+        setArticleSubscriptionStatusRequest.Subscribe = true
+    } else if subscribe == "false" {
+        setArticleSubscriptionStatusRequest.Subscribe = false
+    } else {
         w.WriteHeader(http.StatusBadRequest)
         return
     }
+    setArticleSubscriptionStatusRequest.AuthData = core.DummyAuthenticationData // TODO extract auth from headers
 
-    response, err := server.Core.SetArticleSubscriptionStatus(&artRequest)
+    response, err := server.Core.SetArticleSubscriptionStatus(&setArticleSubscriptionStatusRequest)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        log.Printf("Error happened in Core.SetArticleSubscriptionStatus: %v", err)
         return
     }
 
@@ -242,15 +268,19 @@ func (server *UnarXivServer) PostArticleSubscriptionStatus(w http.ResponseWriter
 }
 
 func (server *UnarXivServer) GetSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-    var s api.GetSearchQuerySubscriptionStatusRequest
-    if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
+    var getSearchQuerySubscriptionStatusRequest api.GetSearchQuerySubscriptionStatusRequest
+    if err := r.ParseForm(); err != nil {
         w.WriteHeader(http.StatusBadRequest)
+        log.Printf("Error happened while parsing form params: %v", err)
         return
     }
+    getSearchQuerySubscriptionStatusRequest.Query = r.Form.Get("query")
+    getSearchQuerySubscriptionStatusRequest.AuthData = core.DummyAuthenticationData // TODO extract auth from headers
 
-    response, err := server.Core.GetSearchQuerySubscriptionStatus(&s)
+    response, err := server.Core.GetSearchQuerySubscriptionStatus(&getSearchQuerySubscriptionStatusRequest)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        log.Printf("Error happened in Core.GetSearchQuerySubscriptionStatus: %v", err)
         return
     }
 
@@ -260,15 +290,28 @@ func (server *UnarXivServer) GetSearchQuerySubscriptionStatus(w http.ResponseWri
 }
 
 func (server *UnarXivServer) PostSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-    var s api.SetSearchQuerySubscriptionStatusRequest
-    if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
+    var setSearchQuerySubscriptionStatusRequest api.SetSearchQuerySubscriptionStatusRequest
+    if err := r.ParseForm(); err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        log.Printf("Error happened while parsing form params: %v", err)
+        return
+    }
+    setSearchQuerySubscriptionStatusRequest.Query = r.Form.Get("query")
+    subscribe := r.Form.Get("subscribe")
+    if subscribe == "true" {
+        setSearchQuerySubscriptionStatusRequest.Subscribe = true
+    } else if subscribe == "false" {
+        setSearchQuerySubscriptionStatusRequest.Subscribe = false
+    } else {
         w.WriteHeader(http.StatusBadRequest)
         return
     }
+    setSearchQuerySubscriptionStatusRequest.AuthData = core.DummyAuthenticationData // TODO extract auth from headers
 
-    response, err := server.Core.SetSearchQuerySubscriptionStatus(&s)
+    response, err := server.Core.SetSearchQuerySubscriptionStatus(&setSearchQuerySubscriptionStatusRequest)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        log.Printf("Error happened in Core.SetSearchQuerySubscriptionStatus: %v", err)
         return
     }
 

@@ -10,16 +10,16 @@ import (
 func main() {
 	unarXivAPI := core.DummyUnarXivAPI{}
 
-	service := server.NewServer(unarXivAPI)
+	unarXivServer := server.NewServer(unarXivAPI)
 
-	server := http.Server{
+	httpServer := http.Server{
 		Addr:         "localhost:8080",
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 
-		Handler: service.Router(),
+		Handler: unarXivServer.Router(),
 	}
-	err := server.ListenAndServe()
+	err := httpServer.ListenAndServe()
 	if err != nil {
 		panic(err)
 	}
