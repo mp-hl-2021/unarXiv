@@ -48,7 +48,7 @@ type ArticleUserMetaInfo struct {
 
 type SearchQueryRequest struct {
     Query    string              `json:"query"`
-    Offset   *uint32             `json:"offset,omitempty"`
+    Offset   uint32              `json:"offset"`
     AuthData *AuthenticationData `json:"authData,omitempty"`
 }
 

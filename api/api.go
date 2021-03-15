@@ -116,10 +116,8 @@ func (a *UnarXivApi) GetSearch(w http.ResponseWriter, r *http.Request) {
     }
     searchQueryRequest.Query = r.Form.Get("query")
     offset, err := strconv.Atoi(r.Form.Get("offset"))
-    if err != nil && offset > 0 {
-        var u32offset uint32
-        u32offset = uint32(offset)
-        searchQueryRequest.Offset = &u32offset
+    if err != nil {
+        searchQueryRequest.Offset = uint32(offset)
     }
     searchQueryRequest.AuthData = &usecases.DummyAuthenticationData // TODO extract auth from headers
 
