@@ -1,6 +1,6 @@
-package api
+package usecases
 
-type UnarXiv interface {
+type UseCasesInterface interface {
     Register(*AuthenticationRequest) (*AuthenticationData, error)
     Login(*AuthenticationRequest) (*AuthenticationData, error)
 
