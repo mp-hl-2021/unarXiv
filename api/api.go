@@ -25,35 +25,35 @@ func NewApi(useCases usecases.UseCasesInterface) *UnarXivApi {
 func (a *UnarXivApi) Router() http.Handler {
     router := mux.NewRouter()
 
-    router.HandleFunc("/register", a.PostRegister).Methods(http.MethodPost)
-    router.HandleFunc("/login", a.PostLogin).Methods(http.MethodPost)
+    router.HandleFunc("/register", a.postRegister).Methods(http.MethodPost)
+    router.HandleFunc("/login", a.postLogin).Methods(http.MethodPost)
 
     // offset is optional, should be passed as "?offset=smth"
     router.Path("/search").Queries("query", "{query}").
-        HandlerFunc(a.GetSearch).Methods(http.MethodGet)
+        HandlerFunc(a.getSearch).Methods(http.MethodGet)
 
-    router.HandleFunc("/articles/{articleId}", a.GetArticle).Methods(http.MethodGet)
+    router.HandleFunc("/articles/{articleId}", a.getArticle).Methods(http.MethodGet)
 
-    router.HandleFunc("/history/searches", a.GetSearchHistory).Methods(http.MethodGet)
-    router.HandleFunc("/history/articles", a.GetArticlesHistory).Methods(http.MethodGet)
+    router.HandleFunc("/history/searches", a.getSearchHistory).Methods(http.MethodGet)
+    router.HandleFunc("/history/articles", a.getArticlesHistory).Methods(http.MethodGet)
 
-    router.HandleFunc("/updates/searches", a.GetSearchQueriesUpdates).Methods(http.MethodGet)
-    router.HandleFunc("/updates/articles", a.GetArticlesUpdates).Methods(http.MethodGet)
+    router.HandleFunc("/updates/searches", a.getSearchQueriesUpdates).Methods(http.MethodGet)
+    router.HandleFunc("/updates/articles", a.getArticlesUpdates).Methods(http.MethodGet)
 
     router.Path("/subscriptions/articles/{articleId}").
-        HandlerFunc(a.GetArticleSubscriptionStatus).Methods(http.MethodGet)
+        HandlerFunc(a.getArticleSubscriptionStatus).Methods(http.MethodGet)
     router.Path("/subscriptions/articles/{articleId}").Queries("subscribe", "{subscribe:(?:true|false)}").
-        HandlerFunc(a.PostArticleSubscriptionStatus).Methods(http.MethodPost)
+        HandlerFunc(a.postArticleSubscriptionStatus).Methods(http.MethodPost)
 
     router.Path("/subscriptions/searches").Queries("query", "{query}").
-        HandlerFunc(a.GetSearchQuerySubscriptionStatus).Methods(http.MethodGet)
+        HandlerFunc(a.getSearchQuerySubscriptionStatus).Methods(http.MethodGet)
     router.Path("/subscriptions/searches").Queries("query", "{query}", "subscribe", "{subscribe:(?:true|false)}").
-        HandlerFunc(a.PostSearchQuerySubscriptionStatus).Methods(http.MethodPost)
+        HandlerFunc(a.postSearchQuerySubscriptionStatus).Methods(http.MethodPost)
 
     return router
 }
 
-func RespondWithJSON(w http.ResponseWriter, object interface{}, status int) error {
+func respondWithJSON(w http.ResponseWriter, object interface{}, status int) error {
     w.Header().Set("Content-Type", "application/json")
 
     if object != nil { // non-empty body
@@ -68,7 +68,7 @@ func RespondWithJSON(w http.ResponseWriter, object interface{}, status int) erro
 }
 
 // postRegister handles request for a new account creation.
-func (a *UnarXivApi) PostRegister(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) postRegister(w http.ResponseWriter, r *http.Request) {
     var registerRequest usecases.AuthenticationRequest
     if err := json.NewDecoder(r.Body).Decode(&registerRequest); err != nil {
         w.WriteHeader(http.StatusBadRequest)
@@ -82,13 +82,13 @@ func (a *UnarXivApi) PostRegister(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    if err := RespondWithJSON(w, &authData, http.StatusCreated); err != nil {
+    if err := respondWithJSON(w, &authData, http.StatusCreated); err != nil {
         log.Printf("Error happened while responding to PostRegister: %v", err)
     }
 }
 
 // PostLogin handles login request for existing user.
-func (a *UnarXivApi) PostLogin(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) postLogin(w http.ResponseWriter, r *http.Request) {
     var authRequest usecases.AuthenticationRequest
     if err := json.NewDecoder(r.Body).Decode(&authRequest); err != nil {
         w.WriteHeader(http.StatusBadRequest)
@@ -102,12 +102,12 @@ func (a *UnarXivApi) PostLogin(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    if err := RespondWithJSON(w, &authData, http.StatusOK); err != nil {
+    if err := respondWithJSON(w, &authData, http.StatusOK); err != nil {
         log.Printf("Error happened while responding to PostLogin: %v", err)
     }
 }
 
-func (a *UnarXivApi) GetSearch(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) getSearch(w http.ResponseWriter, r *http.Request) {
     var searchQueryRequest = usecases.SearchQueryRequest{}
     if err := r.ParseForm(); err != nil {
         w.WriteHeader(http.StatusBadRequest)
@@ -128,12 +128,12 @@ func (a *UnarXivApi) GetSearch(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    if err := RespondWithJSON(w, response, http.StatusOK); err != nil {
+    if err := respondWithJSON(w, response, http.StatusOK); err != nil {
         log.Printf("Error happened while responding to GetSearch: %v", err)
     }
 }
 
-func (a *UnarXivApi) GetArticle(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) getArticle(w http.ResponseWriter, r *http.Request) {
     var articleRequest usecases.AccessArticleRequest
     if err := r.ParseForm(); err != nil {
         w.WriteHeader(http.StatusBadRequest)
@@ -150,12 +150,12 @@ func (a *UnarXivApi) GetArticle(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    if err := RespondWithJSON(w, &response, http.StatusOK); err != nil {
+    if err := respondWithJSON(w, &response, http.StatusOK); err != nil {
         log.Printf("Error happened while responding to GetArticle: %v", err)
     }
 }
 
-func (a *UnarXivApi) GetArticlesHistory(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) getArticlesHistory(w http.ResponseWriter, r *http.Request) {
     authData := usecases.DummyAuthenticationData // TODO extract auth from headers
     response, err := a.Core.GetArticlesHistory(&authData)
     if err != nil {
@@ -164,12 +164,12 @@ func (a *UnarXivApi) GetArticlesHistory(w http.ResponseWriter, r *http.Request) 
         return
     }
 
-    if err := RespondWithJSON(w, &response, http.StatusOK); err != nil {
+    if err := respondWithJSON(w, &response, http.StatusOK); err != nil {
         log.Printf("Error happened while responding to GetArticlesHistory: %v", err)
     }
 }
 
-func (a *UnarXivApi) GetSearchHistory(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) getSearchHistory(w http.ResponseWriter, r *http.Request) {
     authData := usecases.DummyAuthenticationData // TODO extract auth from headers
     response, err := a.Core.GetSearchHistory(&authData)
     if err != nil {
@@ -178,12 +178,12 @@ func (a *UnarXivApi) GetSearchHistory(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    if err := RespondWithJSON(w, &response, http.StatusOK); err != nil {
+    if err := respondWithJSON(w, &response, http.StatusOK); err != nil {
         log.Printf("Error happened while responding to GetSearchHistory: %v", err)
     }
 }
 
-func (a *UnarXivApi) GetSearchQueriesUpdates(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) getSearchQueriesUpdates(w http.ResponseWriter, r *http.Request) {
     authData := usecases.DummyAuthenticationData // TODO extract auth from headers
     response, err := a.Core.GetSearchQueriesUpdates(&authData)
     if err != nil {
@@ -192,12 +192,12 @@ func (a *UnarXivApi) GetSearchQueriesUpdates(w http.ResponseWriter, r *http.Requ
         return
     }
 
-    if err := RespondWithJSON(w, &response, http.StatusOK); err != nil {
+    if err := respondWithJSON(w, &response, http.StatusOK); err != nil {
         log.Printf("Error happened while responding to GetSearchQueriesUpdates: %v", err)
     }
 }
 
-func (a *UnarXivApi) GetArticlesUpdates(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) getArticlesUpdates(w http.ResponseWriter, r *http.Request) {
     authData := usecases.DummyAuthenticationData // TODO extract auth from headers
     response, err := a.Core.GetArticlesUpdates(&authData)
     if err != nil {
@@ -206,12 +206,12 @@ func (a *UnarXivApi) GetArticlesUpdates(w http.ResponseWriter, r *http.Request) 
         return
     }
 
-    if err := RespondWithJSON(w, &response, http.StatusOK); err != nil {
+    if err := respondWithJSON(w, &response, http.StatusOK); err != nil {
         log.Printf("Error happened while responding to GetArticlesUpdates: %v", err)
     }
 }
 
-func (a *UnarXivApi) GetArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) getArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
     var getArticleSubscriptionStatusRequest usecases.GetArticleSubscriptionStatusRequest
     if err := r.ParseForm(); err != nil {
         w.WriteHeader(http.StatusBadRequest)
@@ -228,12 +228,12 @@ func (a *UnarXivApi) GetArticleSubscriptionStatus(w http.ResponseWriter, r *http
         return
     }
 
-    if err := RespondWithJSON(w, &response, http.StatusOK); err != nil {
+    if err := respondWithJSON(w, &response, http.StatusOK); err != nil {
         log.Printf("Error happened while responding to GetArticlesSubscriptionStatus: %v", err)
     }
 }
 
-func (a *UnarXivApi) PostArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) postArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
     var setArticleSubscriptionStatusRequest usecases.SetArticleSubscriptionStatusRequest
 
     if err := r.ParseForm(); err != nil {
@@ -260,12 +260,12 @@ func (a *UnarXivApi) PostArticleSubscriptionStatus(w http.ResponseWriter, r *htt
         return
     }
 
-    if err := RespondWithJSON(w, &response, http.StatusAccepted); err != nil {
+    if err := respondWithJSON(w, &response, http.StatusAccepted); err != nil {
         log.Printf("Error happened while responding to PostArticleSubscriptionStatus: %v", err)
     }
 }
 
-func (a *UnarXivApi) GetSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) getSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
     var getSearchQuerySubscriptionStatusRequest usecases.GetSearchQuerySubscriptionStatusRequest
     if err := r.ParseForm(); err != nil {
         w.WriteHeader(http.StatusBadRequest)
@@ -282,12 +282,12 @@ func (a *UnarXivApi) GetSearchQuerySubscriptionStatus(w http.ResponseWriter, r *
         return
     }
 
-    if err := RespondWithJSON(w, &response, http.StatusOK); err != nil {
+    if err := respondWithJSON(w, &response, http.StatusOK); err != nil {
         log.Printf("Error happened while responding to GetSearchQuerySubscriptionStatus: %v", err)
     }
 }
 
-func (a *UnarXivApi) PostSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
+func (a *UnarXivApi) postSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
     var setSearchQuerySubscriptionStatusRequest usecases.SetSearchQuerySubscriptionStatusRequest
     if err := r.ParseForm(); err != nil {
         w.WriteHeader(http.StatusBadRequest)
@@ -313,7 +313,7 @@ func (a *UnarXivApi) PostSearchQuerySubscriptionStatus(w http.ResponseWriter, r 
         return
     }
 
-    if err := RespondWithJSON(w, &response, http.StatusAccepted); err != nil {
+    if err := respondWithJSON(w, &response, http.StatusAccepted); err != nil {
         log.Printf("Error happened while responding to PostSearchQuerySubscriptionStatus %v", err)
     }
 }
