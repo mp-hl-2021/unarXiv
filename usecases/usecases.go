@@ -1,6 +1,6 @@
 package usecases
 
-type UseCasesInterface interface {
+type Interface interface {
     Register(*AuthenticationRequest) (*AuthenticationData, error)
     Login(*AuthenticationRequest) (*AuthenticationData, error)
 
