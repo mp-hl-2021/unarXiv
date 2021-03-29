@@ -16,3 +16,9 @@ type UserSearchHistory struct {
     UserId
     Queries []string
 }
+
+type UserArticleHistory struct {
+    UserId
+    Articles []ArticleMeta
+}
+

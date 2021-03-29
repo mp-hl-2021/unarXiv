@@ -60,6 +60,17 @@ func (d *DummyUsecases) ClearSearchHistory(id model.UserId) error {
     return nil
 }
 
+func (d *DummyUsecases) GetArticleHistory(id model.UserId) (model.UserArticleHistory, error) {
+    return model.UserArticleHistory{
+        UserId:   0,
+        Articles: []model.ArticleMeta{dummyArticle},
+    }, nil
+}
+
+func (d *DummyUsecases) ClearArticleHistory(id model.UserId) error {
+    return nil
+}
+
 func (d *DummyUsecases) GetArticleLastAccess(userId model.UserId, articleId model.ArticleId) (*model.UserArticleAccess, error) {
     return &model.UserArticleAccess{
         UserId:    0,
