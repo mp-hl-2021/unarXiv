@@ -1,9 +1,9 @@
-package api
+package httpapi
 
 import (
     "encoding/json"
     "github.com/gorilla/mux"
-    "github.com/mp-hl-2021/unarXiv/usecases"
+	"github.com/mp-hl-2021/unarXiv/internal/usecases"
     "log"
     "net/http"
     "strconv"

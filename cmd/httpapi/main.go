@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/mp-hl-2021/unarXiv/api"
-	"github.com/mp-hl-2021/unarXiv/usecases"
+	"github.com/mp-hl-2021/unarXiv/internal/api"
+	"github.com/mp-hl-2021/unarXiv/internal/usecases"
 	"net/http"
 	"time"
 )
