@@ -14,5 +14,5 @@ type ArticleMeta struct {
 type Article struct {
     ArticleMeta
 
-    fullDocumentURL url.URL
+    FullDocumentURL url.URL
 }
