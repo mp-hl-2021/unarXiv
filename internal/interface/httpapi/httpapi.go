@@ -57,6 +57,10 @@ func (a *HttpApi) Router() http.Handler {
 }
 
 func respondWithJSON(w http.ResponseWriter, object interface{}, status int) error {
+    if status != http.StatusOK {
+        w.WriteHeader(status)
+    }
+
     w.Header().Set("Content-Type", "application/json")
 
     if object != nil { // non-empty body
@@ -64,10 +68,6 @@ func respondWithJSON(w http.ResponseWriter, object interface{}, status int) erro
             w.WriteHeader(http.StatusInternalServerError)
             return err
         }
-    }
-
-    if status != http.StatusOK {
-        w.WriteHeader(status)
     }
     return nil
 }

@@ -1,26 +1,28 @@
 package main
 
 import (
-	"github.com/mp-hl-2021/unarXiv/internal/api"
-	"github.com/mp-hl-2021/unarXiv/internal/usecases"
-	"net/http"
-	"time"
+    "fmt"
+    "github.com/mp-hl-2021/unarXiv/internal/interface/dummyUsecases"
+    "github.com/mp-hl-2021/unarXiv/internal/interface/httpapi"
+    "net/http"
+    "time"
 )
 
 func main() {
-	unarXivUseCases := usecases.DummyUnarXivAPI{}
+    unarXivUsecases := dummyUsecases.DummyUsecases{}
 
-	unarXivApi := api.NewApi(unarXivUseCases)
+    httpApi := httpapi.New(&unarXivUsecases)
 
-	httpServer := http.Server{
-		Addr:         "localhost:8080",
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+    httpServer := http.Server{
+        Addr:         "localhost:8080",
+        ReadTimeout:  10 * time.Second,
+        WriteTimeout: 10 * time.Second,
 
-		Handler: unarXivApi.Router(),
-	}
-	err := httpServer.ListenAndServe()
-	if err != nil {
-		panic(err)
-	}
+        Handler: httpApi.Router(),
+    }
+    fmt.Println("Listening on :8080")
+    err := httpServer.ListenAndServe()
+    if err != nil {
+        panic(err)
+    }
 }
