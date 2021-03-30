@@ -2,14 +2,15 @@ package main
 
 import (
     "fmt"
-    "github.com/mp-hl-2021/unarXiv/internal/interface/dummyUsecases"
+    "github.com/mp-hl-2021/unarXiv/internal/interface/smartUsecases"
     "github.com/mp-hl-2021/unarXiv/internal/interface/httpapi"
     "net/http"
     "time"
 )
 
 func main() {
-    unarXivUsecases := dummyUsecases.DummyUsecases{}
+    //unarXivUsecases := dummyUsecases.DummyUsecases{}
+    unarXivUsecases := smartUsecases.SmartUsecases{}
 
     httpApi := httpapi.New(&unarXivUsecases)
 
