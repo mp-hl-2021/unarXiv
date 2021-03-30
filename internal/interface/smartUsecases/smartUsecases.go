@@ -87,48 +87,52 @@ func validatePassword(password string) error {
 
 func (d *SmartUsecases) Register(request usecases.AuthRequest) (usecases.AuthToken, error) {
     if err := validateLogin(request.Login); err != nil {
-		return usecases.AuthToken{}, err
+		return "", err
 	}
 	if err := validatePassword(request.Password); err != nil {
-		return usecases.AuthToken{}, err
+		return "", err
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return usecases.AuthToken{}, err
+		return "", err
 	}
 	acc, err := d.AccountStorage.CreateAccount(accountstorage.Credentials{
 		Login:    request.Login,
 		Password: string(hashedPassword),
 	})
 	if err != nil {
-		return usecases.AuthToken{}, err
+		return "", err
 	}
-	return usecases.AuthToken{acc.Id}, nil
+    token, err := d.Auth.IssueToken(model.UserId(acc.Id))
+	if err != nil {
+		return "", err
+	}
+    return usecases.AuthToken(token), nil
 }
 
 func (d *SmartUsecases) Login(request usecases.AuthRequest) (usecases.AuthToken, error) {
     if err := validateLogin(request.Login); err != nil {
-		return usecases.AuthToken{}, err
+		return "", err
 	}
 	if err := validatePassword(request.Password); err != nil {
-		return usecases.AuthToken{}, err
+		return "", err
 	}
 	acc, err := d.AccountStorage.GetAccountByLogin(request.Login)
 	if err != nil {
-		return usecases.AuthToken{}, err
+		return "", err
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(acc.Credentials.Password), []byte(password)); err != nil {
-		return usecases.AuthToken{}, err
+	if err := bcrypt.CompareHashAndPassword([]byte(acc.Credentials.Password), []byte(request.Password)); err != nil {
+		return "", err
 	}
-	token, err := d.Auth.IssueToken(acc.Id)
+	token, err := d.Auth.IssueToken(model.UserId(acc.Id))
 	if err != nil {
-		return usecases.AuthToken{}, err
+		return "", err
 	}
-	return usecases.AuthToken{token}, nil
+    return usecases.AuthToken(token), nil
 }
 
 func (d *SmartUsecases) Decode(token usecases.AuthToken) (model.UserId, error) {
-    return d.Auth.UserIdByToken()
+    return d.Auth.UserIdByToken(token)
 }
 
 func (d *SmartUsecases) AccessArticle(articleId model.ArticleId, userId *model.UserId) (model.Article, error) {
