@@ -21,11 +21,11 @@ var smartArticle = model.ArticleMeta{
     LastUpdateTimestamp: 0,
 }
 var smartArticleSubscription = model.UserArticleSubscription{
-    UserId:    0,
+    UserId:    "0",
     ArticleId: "smart",
 }
 var smartSearchSubscription = model.UserSearchSubscription{
-    UserId: 0,
+    UserId: "0",
     Query:  "smart",
 }
 
@@ -103,7 +103,7 @@ func (d *SmartUsecases) Register(request usecases.AuthRequest) (usecases.AuthTok
 	if err != nil {
 		return "", err
 	}
-    token, err := d.Auth.IssueToken(model.UserId(acc.Id))
+    token, err := d.Auth.IssueToken(acc.Id)
 	if err != nil {
 		return "", err
 	}
@@ -124,7 +124,7 @@ func (d *SmartUsecases) Login(request usecases.AuthRequest) (usecases.AuthToken,
 	if err := bcrypt.CompareHashAndPassword([]byte(acc.Credentials.Password), []byte(request.Password)); err != nil {
 		return "", err
 	}
-	token, err := d.Auth.IssueToken(model.UserId(acc.Id))
+	token, err := d.Auth.IssueToken(acc.Id)
 	if err != nil {
 		return "", err
 	}
@@ -132,7 +132,11 @@ func (d *SmartUsecases) Login(request usecases.AuthRequest) (usecases.AuthToken,
 }
 
 func (d *SmartUsecases) Decode(token usecases.AuthToken) (model.UserId, error) {
-    return d.Auth.UserIdByToken(token)
+    id, err := d.Auth.UserIdByToken(string(token))
+    if err != nil {
+        return "", err
+    }
+    return model.UserId(id), nil
 }
 
 func (d *SmartUsecases) AccessArticle(articleId model.ArticleId, userId *model.UserId) (model.Article, error) {
@@ -150,7 +154,7 @@ func (d *SmartUsecases) Search(query model.SearchQuery, userId *model.UserId) (m
 
 func (d *SmartUsecases) GetSearchHistory(id model.UserId) (model.UserSearchHistory, error) {
     return model.UserSearchHistory{
-        UserId:  0,
+        UserId:  "0",
         Queries: []string{"smart"},
     }, nil
 }
@@ -161,7 +165,7 @@ func (d *SmartUsecases) ClearSearchHistory(id model.UserId) error {
 
 func (d *SmartUsecases) GetArticleHistory(id model.UserId) (model.UserArticleHistory, error) {
     return model.UserArticleHistory{
-        UserId:   0,
+        UserId:   "0",
         Articles: []model.ArticleMeta{smartArticle},
     }, nil
 }
@@ -172,7 +176,7 @@ func (d *SmartUsecases) ClearArticleHistory(id model.UserId) error {
 
 func (d *SmartUsecases) GetArticleLastAccess(userId model.UserId, articleId model.ArticleId) (*model.UserArticleAccess, error) {
     return &model.UserArticleAccess{
-        UserId:    0,
+        UserId:    "0",
         ArticleId: "smart",
         Timestamp: 293,
     }, nil
@@ -180,7 +184,7 @@ func (d *SmartUsecases) GetArticleLastAccess(userId model.UserId, articleId mode
 
 func (d *SmartUsecases) GetSearchLastAccess(userId model.UserId, query string) (*model.UserSearchAccess, error) {
     return &model.UserSearchAccess{
-        UserId:    0,
+        UserId:    "0",
         Query:     "smart",
         Timestamp: 2394,
     }, nil
