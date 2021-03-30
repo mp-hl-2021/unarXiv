@@ -1,12 +1,11 @@
 package accountstorage
 
 import (
-	"strconv"
 	"sync"
 )
 
 type Memory struct {
-	accountsById    map[string]Account
+	accountsById    map[uint64]Account
 	accountsByLogin map[string]Account
 	nextId          uint64
 	mu              *sync.Mutex
@@ -14,7 +13,7 @@ type Memory struct {
 
 func NewMemory() *Memory {
 	return &Memory{
-		accountsById:    make(map[string]Account),
+		accountsById:    make(map[uint64]Account),
 		accountsByLogin: make(map[string]Account),
 		mu:              &sync.Mutex{},
 	}
@@ -27,7 +26,7 @@ func (m *Memory) CreateAccount(cred Credentials) (Account, error) {
 		return Account{}, ErrAlreadyExist
 	}
 	a := Account{
-		Id: strconv.FormatUint(m.nextId, 16),
+		Id: m.nextId,
 		Credentials: cred,
 	}
 	m.accountsById[a.Id] = a
@@ -36,7 +35,7 @@ func (m *Memory) CreateAccount(cred Credentials) (Account, error) {
 	return a, nil
 }
 
-func (m *Memory) GetAccountById(id string) (Account, error) {
+func (m *Memory) GetAccountById(id uint64) (Account, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	a, ok := m.accountsById[id]
