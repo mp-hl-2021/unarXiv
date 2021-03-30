@@ -169,7 +169,7 @@ func (a *HttpApi) getArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) getArticlesHistory(w http.ResponseWriter, r *http.Request) {
-    result, err := a.usecases.GetArticleHistory(0) // TODO extract auth from headers
+    result, err := a.usecases.GetArticleHistory("0") // TODO extract auth from headers
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         log.Printf("Error happened in usecases.GetArticlesHistory: %v", err)
@@ -182,7 +182,7 @@ func (a *HttpApi) getArticlesHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) getSearchHistory(w http.ResponseWriter, r *http.Request) {
-    result, err := a.usecases.GetSearchHistory(0) // TODO extract auth from headers
+    result, err := a.usecases.GetSearchHistory("0") // TODO extract auth from headers
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         log.Printf("Error happened in usecases.GetSearchHistory: %v", err)
@@ -195,7 +195,7 @@ func (a *HttpApi) getSearchHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) getSearchQueriesUpdates(w http.ResponseWriter, r *http.Request) {
-    response, err := a.usecases.GetSearchUpdates(0) // TODO extract auth from headers
+    response, err := a.usecases.GetSearchUpdates("0") // TODO extract auth from headers
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         log.Printf("Error happened in usecases.GetSearchQueriesUpdates: %v", err)
@@ -208,7 +208,7 @@ func (a *HttpApi) getSearchQueriesUpdates(w http.ResponseWriter, r *http.Request
 }
 
 func (a *HttpApi) getArticlesUpdates(w http.ResponseWriter, r *http.Request) {
-    result, err := a.usecases.GetArticleUpdates(0) // TODO extract auth from headers
+    result, err := a.usecases.GetArticleUpdates("0") // TODO extract auth from headers
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         log.Printf("Error happened in usecases.GetArticlesUpdates: %v", err)
@@ -234,7 +234,7 @@ func (a *HttpApi) getArticleSubscriptionStatus(w http.ResponseWriter, r *http.Re
 
     articleId := model.ArticleId(r.Form.Get("articleId"))
 
-    result, err := a.usecases.CheckArticleSubscription(0, articleId) // TODO extract auth from headers
+    result, err := a.usecases.CheckArticleSubscription("0", articleId) // TODO extract auth from headers
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         log.Printf("Error happened in usecases.GetArticleSubscriptionStatus: %v", err)
@@ -260,7 +260,7 @@ func (a *HttpApi) postArticleSubscriptionStatus(w http.ResponseWriter, r *http.R
     }
     articleId := model.ArticleId(r.Form.Get("articleId"))
 
-    result, err := a.usecases.SubscribeForArticle(0, articleId) // TODO extract auth from headers
+    result, err := a.usecases.SubscribeForArticle("0", articleId) // TODO extract auth from headers
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         log.Printf("Error happened in usecases.PostArticleSubscriptionStatus: %v", err)
@@ -280,7 +280,7 @@ func (a *HttpApi) deleteArticleSubscriptionStatus(w http.ResponseWriter, r *http
     }
     articleId := model.ArticleId(r.Form.Get("articleId"))
 
-    err := a.usecases.UnsubscribeFromArticle(0, articleId) // TODO extract auth from headers
+    err := a.usecases.UnsubscribeFromArticle("0", articleId) // TODO extract auth from headers
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         log.Printf("Error happened in usecases.PostArticleSubscriptionStatus: %v", err)
@@ -300,7 +300,7 @@ func (a *HttpApi) getSearchQuerySubscriptionStatus(w http.ResponseWriter, r *htt
     }
     query := r.Form.Get("query")
 
-    result, err := a.usecases.CheckSearchSubscription(0, query) // TODO extract auth from headers
+    result, err := a.usecases.CheckSearchSubscription("0", query) // TODO extract auth from headers
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         log.Printf("Error happened in usecases.GetSearchQuerySubscriptionStatus: %v", err)
@@ -326,7 +326,7 @@ func (a *HttpApi) postSearchQuerySubscriptionStatus(w http.ResponseWriter, r *ht
     }
     query := r.Form.Get("query")
 
-    result, err := a.usecases.SubscribeForSearch(0, query) // TODO extract auth from headers
+    result, err := a.usecases.SubscribeForSearch("0", query) // TODO extract auth from headers
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         log.Printf("Error happened in usecases.PostSearchQuerySubscriptionStatus: %v", err)
@@ -346,7 +346,7 @@ func (a *HttpApi) deleteSearchQuerySubscriptionStatus(w http.ResponseWriter, r *
     }
     query := r.Form.Get("query")
 
-    err := a.usecases.UnsubscribeFromSearch(0, query) // TODO extract auth from headers
+    err := a.usecases.UnsubscribeFromSearch("0", query) // TODO extract auth from headers
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         log.Printf("Error happened in usecases.PostSearchQuerySubscriptionStatus: %v", err)
