@@ -4,6 +4,7 @@ import (
     "github.com/mp-hl-2021/unarXiv/internal/domain/model"
     "github.com/mp-hl-2021/unarXiv/internal/usecases"
     "github.com/mp-hl-2021/unarXiv/internal/accountstorage"
+    "github.com/mp-hl-2021/unarXiv/internal/interface/auth"
 
     "golang.org/x/crypto/bcrypt"
 
@@ -95,7 +96,7 @@ func (d *SmartUsecases) Register(request usecases.AuthRequest) (usecases.AuthTok
 	if err != nil {
 		return usecases.AuthToken{}, err
 	}
-	acc, err := a.AccountStorage.CreateAccount(accountstorage.Credentials{
+	acc, err := d.AccountStorage.CreateAccount(accountstorage.Credentials{
 		Login:    request.Login,
 		Password: string(hashedPassword),
 	})
@@ -106,11 +107,28 @@ func (d *SmartUsecases) Register(request usecases.AuthRequest) (usecases.AuthTok
 }
 
 func (d *SmartUsecases) Login(request usecases.AuthRequest) (usecases.AuthToken, error) {
-    return smartToken, nil
+    if err := validateLogin(request.Login); err != nil {
+		return usecases.AuthToken{}, err
+	}
+	if err := validatePassword(request.Password); err != nil {
+		return usecases.AuthToken{}, err
+	}
+	acc, err := d.AccountStorage.GetAccountByLogin(request.Login)
+	if err != nil {
+		return usecases.AuthToken{}, err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(acc.Credentials.Password), []byte(password)); err != nil {
+		return usecases.AuthToken{}, err
+	}
+	token, err := d.Auth.IssueToken(acc.Id)
+	if err != nil {
+		return usecases.AuthToken{}, err
+	}
+	return usecases.AuthToken{token}, nil
 }
 
 func (d *SmartUsecases) Decode(token usecases.AuthToken) (model.UserId, error) {
-    return 0, nil
+    return d.Auth.UserIdByToken()
 }
 
 func (d *SmartUsecases) AccessArticle(articleId model.ArticleId, userId *model.UserId) (model.Article, error) {
