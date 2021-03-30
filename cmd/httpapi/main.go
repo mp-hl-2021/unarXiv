@@ -3,7 +3,7 @@ package main
 import (
     "github.com/mp-hl-2021/unarXiv/internal/interface/smartUsecases"
     "github.com/mp-hl-2021/unarXiv/internal/interface/httpapi"
-    "github.com/mp-hl-2021/unarXiv/internal/accountstorage"
+    "github.com/mp-hl-2021/unarXiv/internal/interface/accountstorage"
     "github.com/mp-hl-2021/unarXiv/internal/interface/auth"
 
     "fmt"

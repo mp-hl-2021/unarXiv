@@ -3,7 +3,7 @@ package smartUsecases
 import (
     "github.com/mp-hl-2021/unarXiv/internal/domain/model"
     "github.com/mp-hl-2021/unarXiv/internal/usecases"
-    "github.com/mp-hl-2021/unarXiv/internal/accountstorage"
+    "github.com/mp-hl-2021/unarXiv/internal/interface/accountstorage"
     "github.com/mp-hl-2021/unarXiv/internal/interface/auth"
 
     "golang.org/x/crypto/bcrypt"
