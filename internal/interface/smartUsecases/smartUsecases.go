@@ -8,8 +8,8 @@ import (
 
     "golang.org/x/crypto/bcrypt"
 
-	"errors"
-	"unicode"
+    "errors"
+    "unicode"
 )
 
 var smartToken usecases.AuthToken = "jwt"
@@ -31,103 +31,103 @@ var smartSearchSubscription = model.UserSearchSubscription{
 
 type SmartUsecases struct {
     AccountStorage accountstorage.Interface
-	Auth           auth.Interface
+    Auth           auth.Interface
 }
 
 var (
-	ErrInvalidLoginString    = errors.New("login string contains invalid character")
-	ErrInvalidPasswordString = errors.New("password string contains invalid character")
-	ErrTooShortString        = errors.New("too short string")
-	ErrTooLongString         = errors.New("too long string")
+    ErrInvalidLoginString    = errors.New("login string contains invalid character")
+    ErrInvalidPasswordString = errors.New("password string contains invalid character")
+    ErrTooShortString        = errors.New("too short string")
+    ErrTooLongString         = errors.New("too long string")
 
-	ErrInvalidLogin    = errors.New("login not found")
-	ErrInvalidPassword = errors.New("invalid password")
+    ErrInvalidLogin    = errors.New("login not found")
+    ErrInvalidPassword = errors.New("invalid password")
 )
 
 const (
-	minLoginLength    = 6
-	maxLoginLength    = 20
-	minPasswordLength = 14
-	maxPasswordLength = 48
+    minLoginLength    = 6
+    maxLoginLength    = 20
+    minPasswordLength = 14
+    maxPasswordLength = 48
 )
 
 func validateLogin(login string) error {
-	chars := 0
-	for _, r := range login {
-		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			return ErrInvalidLoginString
-		}
-		chars++
-	}
-	if chars < minLoginLength {
-		return ErrTooShortString
-	}
-	if chars > maxLoginLength {
-		return ErrTooLongString
-	}
-	return nil
+    chars := 0
+    for _, r := range login {
+        if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+            return ErrInvalidLoginString
+        }
+        chars++
+    }
+    if chars < minLoginLength {
+        return ErrTooShortString
+    }
+    if chars > maxLoginLength {
+        return ErrTooLongString
+    }
+    return nil
 }
 
 func validatePassword(password string) error {
-	chars := 0
-	for _, r := range password {
-		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && !unicode.IsSpace(r) {
-			return ErrInvalidPasswordString
-		}
-		chars++
-	}
-	if chars < minPasswordLength {
-		return ErrTooShortString
-	}
-	if chars > maxPasswordLength {
-		return ErrTooLongString
-	}
-	return nil
+    chars := 0
+    for _, r := range password {
+        if !unicode.IsLetter(r) && !unicode.IsDigit(r) && !unicode.IsSpace(r) {
+            return ErrInvalidPasswordString
+        }
+        chars++
+    }
+    if chars < minPasswordLength {
+        return ErrTooShortString
+    }
+    if chars > maxPasswordLength {
+        return ErrTooLongString
+    }
+    return nil
 }
 
 func (d *SmartUsecases) Register(request usecases.AuthRequest) (usecases.AuthToken, error) {
     if err := validateLogin(request.Login); err != nil {
-		return "", err
-	}
-	if err := validatePassword(request.Password); err != nil {
-		return "", err
-	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	acc, err := d.AccountStorage.CreateAccount(accountstorage.Credentials{
-		Login:    request.Login,
-		Password: string(hashedPassword),
-	})
-	if err != nil {
-		return "", err
-	}
+        return "", err
+    }
+    if err := validatePassword(request.Password); err != nil {
+        return "", err
+    }
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+    if err != nil {
+        return "", err
+    }
+    acc, err := d.AccountStorage.CreateAccount(accountstorage.Credentials{
+        Login:    request.Login,
+        Password: string(hashedPassword),
+    })
+    if err != nil {
+        return "", err
+    }
     token, err := d.Auth.IssueToken(acc.Id)
-	if err != nil {
-		return "", err
-	}
+    if err != nil {
+        return "", err
+    }
     return usecases.AuthToken(token), nil
 }
 
 func (d *SmartUsecases) Login(request usecases.AuthRequest) (usecases.AuthToken, error) {
     if err := validateLogin(request.Login); err != nil {
-		return "", err
-	}
-	if err := validatePassword(request.Password); err != nil {
-		return "", err
-	}
-	acc, err := d.AccountStorage.GetAccountByLogin(request.Login)
-	if err != nil {
-		return "", err
-	}
-	if err := bcrypt.CompareHashAndPassword([]byte(acc.Credentials.Password), []byte(request.Password)); err != nil {
-		return "", err
-	}
-	token, err := d.Auth.IssueToken(acc.Id)
-	if err != nil {
-		return "", err
-	}
+        return "", err
+    }
+    if err := validatePassword(request.Password); err != nil {
+        return "", err
+    }
+    acc, err := d.AccountStorage.GetAccountByLogin(request.Login)
+    if err != nil {
+        return "", err
+    }
+    if err := bcrypt.CompareHashAndPassword([]byte(acc.Credentials.Password), []byte(request.Password)); err != nil {
+        return "", err
+    }
+    token, err := d.Auth.IssueToken(acc.Id)
+    if err != nil {
+        return "", err
+    }
     return usecases.AuthToken(token), nil
 }
 
