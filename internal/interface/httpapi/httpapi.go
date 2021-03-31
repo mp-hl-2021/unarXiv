@@ -39,29 +39,29 @@ func (a *HttpApi) Router() http.Handler {
 	router.HandleFunc("/login", a.postLogin).Methods(http.MethodPost)
 
 	// offset is optional, should be passed as "?offset=smth"
-	router.Path("/search/{query}").HandlerFunc(a.addIdToContext(a.getSearch)).Methods(http.MethodGet)
+	router.Path("/search/{query}").HandlerFunc(a.extractAuth(a.getSearch)).Methods(http.MethodGet)
 
-	router.HandleFunc("/articles/{articleId}", a.addIdToContext(a.getArticle)).Methods(http.MethodGet)
+	router.HandleFunc("/articles/{articleId}", a.extractAuth(a.getArticle)).Methods(http.MethodGet)
 
-	router.HandleFunc("/history/searches", a.addIdToContext(a.getSearchHistory)).Methods(http.MethodGet)
-	router.HandleFunc("/history/articles", a.addIdToContext(a.getArticlesHistory)).Methods(http.MethodGet)
+	router.HandleFunc("/history/searches", a.extractAuth(a.getSearchHistory)).Methods(http.MethodGet)
+	router.HandleFunc("/history/articles", a.extractAuth(a.getArticlesHistory)).Methods(http.MethodGet)
 
-	router.HandleFunc("/updates/searches", a.addIdToContext(a.getSearchQueriesUpdates)).Methods(http.MethodGet)
-	router.HandleFunc("/updates/articles", a.addIdToContext(a.getArticlesUpdates)).Methods(http.MethodGet)
+	router.HandleFunc("/updates/searches", a.extractAuth(a.getSearchQueriesUpdates)).Methods(http.MethodGet)
+	router.HandleFunc("/updates/articles", a.extractAuth(a.getArticlesUpdates)).Methods(http.MethodGet)
 
 	router.Path("/subscriptions/articles/{articleId}").
-		HandlerFunc(a.addIdToContext(a.getArticleSubscriptionStatus)).Methods(http.MethodGet)
+		HandlerFunc(a.extractAuth(a.getArticleSubscriptionStatus)).Methods(http.MethodGet)
 	router.Path("/subscriptions/articles/{articleId}").
-		HandlerFunc(a.addIdToContext(a.postArticleSubscriptionStatus)).Methods(http.MethodPost)
+		HandlerFunc(a.extractAuth(a.postArticleSubscriptionStatus)).Methods(http.MethodPost)
 	router.Path("/subscriptions/articles/{articleId}").
-		HandlerFunc(a.addIdToContext(a.deleteArticleSubscriptionStatus)).Methods(http.MethodDelete)
+		HandlerFunc(a.extractAuth(a.deleteArticleSubscriptionStatus)).Methods(http.MethodDelete)
 
 	router.Path("/subscriptions/searches/{query}").
-		HandlerFunc(a.addIdToContext(a.getSearchQuerySubscriptionStatus)).Methods(http.MethodGet)
+		HandlerFunc(a.extractAuth(a.getSearchQuerySubscriptionStatus)).Methods(http.MethodGet)
 	router.Path("/subscriptions/searches/{query}").
-		HandlerFunc(a.addIdToContext(a.postSearchQuerySubscriptionStatus)).Methods(http.MethodPost)
+		HandlerFunc(a.extractAuth(a.postSearchQuerySubscriptionStatus)).Methods(http.MethodPost)
 	router.Path("/subscriptions/searches/{query}").
-		HandlerFunc(a.addIdToContext(a.deleteSearchQuerySubscriptionStatus)).Methods(http.MethodDelete)
+		HandlerFunc(a.extractAuth(a.deleteSearchQuerySubscriptionStatus)).Methods(http.MethodDelete)
 
 	return router
 }
@@ -461,7 +461,7 @@ func (a *HttpApi) extractIdFromHeader(r *http.Request) (model.UserId, error) {
 	return userId, nil
 }
 
-func (a *HttpApi) addIdToContext(handler http.HandlerFunc) http.HandlerFunc {
+func (a *HttpApi) extractAuth(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, err := a.extractIdFromHeader(r)
 		if err != nil || userId == "" {
