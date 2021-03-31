@@ -15,16 +15,16 @@ import (
 
 func main() {
     privateKeyPath := flag.String("privateKey", "app.rsa", "file path")
-	publicKeyPath := flag.String("publicKey", "app.rsa.pub", "file path")
-	flag.Parse()
+    publicKeyPath := flag.String("publicKey", "app.rsa.pub", "file path")
+    flag.Parse()
 
-	privateKeyBytes, err := ioutil.ReadFile(*privateKeyPath)
-	publicKeyBytes, err := ioutil.ReadFile(*publicKeyPath)
+    privateKeyBytes, err := ioutil.ReadFile(*privateKeyPath)
+    publicKeyBytes, err := ioutil.ReadFile(*publicKeyPath)
 
-	a, err := auth.NewJwt(privateKeyBytes, publicKeyBytes, 100*time.Minute)
-	if err != nil {
-		panic(err)
-	}
+    a, err := auth.NewJwt(privateKeyBytes, publicKeyBytes, 100*time.Minute)
+    if err != nil {
+        panic(err)
+    }
 
     //unarXivUsecases := dummyUsecases.DummyUsecases{}
     unarXivUsecases := smartUsecases.SmartUsecases{AccountStorage: accountstorage.NewMemory(), Auth: a}
