@@ -4,7 +4,7 @@ import "errors"
 
 var (
     ErrNotFound = errors.New("not found")
-    ErrAlreadyExist = errors.New("already exist")
+    ErrAlreadyExist = errors.New("already exists")
 )
 
 type Account struct {
