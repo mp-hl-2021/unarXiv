@@ -24,7 +24,7 @@ func (m *Memory) CreateAccount(cred Credentials) (Account, error) {
     m.mu.Lock()
     defer m.mu.Unlock()
     if _, ok := m.accountsByLogin[cred.Login]; ok {
-        return Account{}, ErrAlreadyExist
+        return Account{}, ErrAlreadyExists
     }
     a := Account{
         Id: strconv.FormatUint(m.nextId, 16),
