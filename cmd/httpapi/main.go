@@ -1,27 +1,38 @@
 package main
 
 import (
-    "github.com/mp-hl-2021/unarXiv/internal/interface/smartUsecases"
-    "github.com/mp-hl-2021/unarXiv/internal/interface/httpapi"
     "github.com/mp-hl-2021/unarXiv/internal/interface/accountstorage"
     "github.com/mp-hl-2021/unarXiv/internal/interface/auth"
+    "github.com/mp-hl-2021/unarXiv/internal/interface/httpapi"
+    "github.com/mp-hl-2021/unarXiv/internal/interface/smartUsecases"
+    "os"
 
+    "flag"
     "fmt"
     "net/http"
     "time"
-    "flag"
-    "io/ioutil"
 )
+
+func readCryptoKey(privateKeyPath string, publicKeyPath string) (privateKeyBytes []byte, publicKeyBytes []byte, err error) {
+    privateKeyBytes, err = os.ReadFile(privateKeyPath)
+    if err != nil {
+        return
+    }
+    publicKeyBytes, err = os.ReadFile(publicKeyPath)
+    return
+}
 
 func main() {
     privateKeyPath := flag.String("privateKey", "app.rsa", "file path")
     publicKeyPath := flag.String("publicKey", "app.rsa.pub", "file path")
     flag.Parse()
 
-    privateKeyBytes, err := ioutil.ReadFile(*privateKeyPath)
-    publicKeyBytes, err := ioutil.ReadFile(*publicKeyPath)
+    privateKeyBytes, publicKeyBytes, err := readCryptoKey(*privateKeyPath, *publicKeyPath)
+    if err != nil {
+        panic(err)
+    }
 
-    a, err := auth.NewJwt(privateKeyBytes, publicKeyBytes, 100*time.Minute)
+    a, err := auth.NewJwtConfig(privateKeyBytes, publicKeyBytes, 100*time.Minute)
     if err != nil {
         panic(err)
     }
