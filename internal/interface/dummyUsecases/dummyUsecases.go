@@ -14,12 +14,12 @@ var dummyArticle = model.ArticleMeta{
     LastUpdateTimestamp: 0,
 }
 var dummyArticleSubscription = model.UserArticleSubscription{
-    UserId:    0,
+    UserId:    "0",
     ArticleId: "dummy",
 }
 var dummySearchSubscription = model.UserSearchSubscription{
-    UserId:    0,
-    Query: "dummy",
+    UserId: "0",
+    Query:  "dummy",
 }
 
 type DummyUsecases struct{}
@@ -33,7 +33,7 @@ func (d *DummyUsecases) Login(request usecases.AuthRequest) (usecases.AuthToken,
 }
 
 func (d *DummyUsecases) Decode(token usecases.AuthToken) (model.UserId, error) {
-    return 0, nil
+    return "0", nil
 }
 
 func (d *DummyUsecases) AccessArticle(articleId model.ArticleId, userId *model.UserId) (model.Article, error) {
@@ -51,7 +51,7 @@ func (d *DummyUsecases) Search(query model.SearchQuery, userId *model.UserId) (m
 
 func (d *DummyUsecases) GetSearchHistory(id model.UserId) (model.UserSearchHistory, error) {
     return model.UserSearchHistory{
-        UserId:  0,
+        UserId:  "0",
         Queries: []string{"dummy"},
     }, nil
 }
@@ -62,7 +62,7 @@ func (d *DummyUsecases) ClearSearchHistory(id model.UserId) error {
 
 func (d *DummyUsecases) GetArticleHistory(id model.UserId) (model.UserArticleHistory, error) {
     return model.UserArticleHistory{
-        UserId:   0,
+        UserId:   "0",
         Articles: []model.ArticleMeta{dummyArticle},
     }, nil
 }
@@ -73,7 +73,7 @@ func (d *DummyUsecases) ClearArticleHistory(id model.UserId) error {
 
 func (d *DummyUsecases) GetArticleLastAccess(userId model.UserId, articleId model.ArticleId) (*model.UserArticleAccess, error) {
     return &model.UserArticleAccess{
-        UserId:    0,
+        UserId:    "0",
         ArticleId: "dummy",
         Timestamp: 293,
     }, nil
@@ -81,7 +81,7 @@ func (d *DummyUsecases) GetArticleLastAccess(userId model.UserId, articleId mode
 
 func (d *DummyUsecases) GetSearchLastAccess(userId model.UserId, query string) (*model.UserSearchAccess, error) {
     return &model.UserSearchAccess{
-        UserId:    0,
+        UserId:    "0",
         Query:     "dummy",
         Timestamp: 2394,
     }, nil
