@@ -1,16 +1,16 @@
 package main
 
 import (
-    "github.com/mp-hl-2021/unarXiv/internal/interface/accountstorage"
-    "github.com/mp-hl-2021/unarXiv/internal/interface/auth"
-    "github.com/mp-hl-2021/unarXiv/internal/interface/httpapi"
-    "github.com/mp-hl-2021/unarXiv/internal/interface/smartUsecases"
-    "os"
+	"github.com/mp-hl-2021/unarXiv/internal/interface/auth"
+	"github.com/mp-hl-2021/unarXiv/internal/interface/httpapi"
+	"github.com/mp-hl-2021/unarXiv/internal/interface/repository/memory"
+	"github.com/mp-hl-2021/unarXiv/internal/interface/smartUsecases"
+	"os"
 
-    "flag"
-    "fmt"
-    "net/http"
-    "time"
+	"flag"
+	"fmt"
+	"net/http"
+	"time"
 )
 
 func readCryptoKey(privateKeyPath string, publicKeyPath string) (privateKeyBytes []byte, publicKeyBytes []byte, err error) {
@@ -38,7 +38,7 @@ func main() {
     }
 
     //unarXivUsecases := dummyUsecases.DummyUsecases{}
-    unarXivUsecases := smartUsecases.SmartUsecases{AccountStorage: accountstorage.NewMemory(), Auth: a}
+    unarXivUsecases := smartUsecases.SmartUsecases{AccountStorage: memory.NewAccountsRepo(), Auth: a}
 
     httpApi := httpapi.New(&unarXivUsecases)
 
