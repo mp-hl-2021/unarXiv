@@ -5,6 +5,7 @@ import (
     "strings"
     "bufio"
     "os"
+    "time"
 
     "github.com/gocolly/colly/v2"
 )
@@ -34,7 +35,7 @@ func main() {
 
     urlQueue = append(urlQueue, "https://arxiv.org/covid19search")
 
-    needArticles := 100
+    needArticles := 10
 
     for len(articles) < needArticles && len(urlQueue) > 0 {
         url := urlQueue[0]
@@ -72,14 +73,9 @@ func main() {
         c2.OnHTML("[class=\"abstract mathjax\"]", func(e *colly.HTMLElement) {
             abstract = strings.Replace(e.Text, "\n", " ", -1)
         })
-        lastUpdateTimestamp := ""
-        c2.OnHTML(".submission-history", func(e *colly.HTMLElement) {
-            lst := strings.Split(e.Text, "\n")
-            lastUpdateTimestamp = lst[len(lst) - 1]
-        })
 
         c2.Visit(url)
-        fmt.Fprintf(w, "%s;%s;%s;%s;%s\n", url, title, authors, abstract, lastUpdateTimestamp)
+        fmt.Fprintf(w, "%s;%s;%s;%s;%s\n", url, title, authors, abstract, time.Now().String())
     }
 }
 
