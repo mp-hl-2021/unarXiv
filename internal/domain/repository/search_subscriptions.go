@@ -1,4 +1,4 @@
-package subscriptions
+package repository
 
 import "github.com/mp-hl-2021/unarXiv/internal/domain/model"
 

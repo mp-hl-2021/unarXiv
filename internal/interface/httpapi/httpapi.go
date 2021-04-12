@@ -152,7 +152,7 @@ func (a *HttpApi) getSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var searchQueryRequest = model.SearchQuery{}
-	searchQueryRequest.Query = r.Form.Get("query")
+	searchQueryRequest.Query = mux.Vars(r)["query"]
 	if strOffset := r.Form.Get("offset"); len(strOffset) != 0 {
 		offset, err := strconv.Atoi(strOffset)
 		if err != nil || offset < 0 {
@@ -175,13 +175,8 @@ func (a *HttpApi) getSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) getArticle(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("Error happened while parsing form params: %v", err)
-		return
-	}
 	var articleId model.ArticleId
-	articleId = model.ArticleId(r.Form.Get("articleId"))
+	articleId = model.ArticleId(mux.Vars(r)["articleId"])
 
 	result, err := a.usecases.AccessArticle(articleId, userIdPtrFromRequest(r))
 	if err != nil {
@@ -271,13 +266,7 @@ func (a *HttpApi) getArticlesUpdates(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) getArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("Error happened while parsing form params: %v", err)
-		return
-	}
-
-	articleId := model.ArticleId(r.Form.Get("articleId"))
+	articleId := model.ArticleId(mux.Vars(r)["articleId"])
 	userId, ok := userIdFromRequest(r)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -303,12 +292,7 @@ func (a *HttpApi) getArticleSubscriptionStatus(w http.ResponseWriter, r *http.Re
 }
 
 func (a *HttpApi) postArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("Error happened while parsing form params: %v", err)
-		return
-	}
-	articleId := model.ArticleId(r.Form.Get("articleId"))
+	articleId := model.ArticleId(mux.Vars(r)["articleId"])
 	userId, ok := userIdFromRequest(r)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -328,12 +312,7 @@ func (a *HttpApi) postArticleSubscriptionStatus(w http.ResponseWriter, r *http.R
 }
 
 func (a *HttpApi) deleteArticleSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("Error happened while parsing form params: %v", err)
-		return
-	}
-	articleId := model.ArticleId(r.Form.Get("articleId"))
+	articleId := model.ArticleId(mux.Vars(r)["articleId"])
 
 	userId, ok := userIdFromRequest(r)
 	if !ok {
@@ -354,12 +333,7 @@ func (a *HttpApi) deleteArticleSubscriptionStatus(w http.ResponseWriter, r *http
 }
 
 func (a *HttpApi) getSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("Error happened while parsing form params: %v", err)
-		return
-	}
-	query := r.Form.Get("query")
+	query := mux.Vars(r)["query"]
 	userId, ok := userIdFromRequest(r)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -385,12 +359,7 @@ func (a *HttpApi) getSearchQuerySubscriptionStatus(w http.ResponseWriter, r *htt
 }
 
 func (a *HttpApi) postSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("Error happened while parsing form params: %v", err)
-		return
-	}
-	query := r.Form.Get("query")
+	query := mux.Vars(r)["query"]
 
 	userId, ok := userIdFromRequest(r)
 	if !ok {
@@ -411,12 +380,7 @@ func (a *HttpApi) postSearchQuerySubscriptionStatus(w http.ResponseWriter, r *ht
 }
 
 func (a *HttpApi) deleteSearchQuerySubscriptionStatus(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("Error happened while parsing form params: %v", err)
-		return
-	}
-	query := r.Form.Get("query")
+	query := mux.Vars(r)["query"]
 	userId, ok := userIdFromRequest(r)
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)

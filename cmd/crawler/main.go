@@ -1,10 +1,10 @@
 package main
 
 import (
-    "fmt"
-    "strings"
     "bufio"
+    "fmt"
     "os"
+    "strings"
     "time"
 
     "github.com/gocolly/colly/v2"
@@ -55,6 +55,7 @@ func main() {
     }
     defer f.Close()
     w := bufio.NewWriter(f)
+    defer w.Flush()
 
     fmt.Fprintf(w, "Id;Title;Authors;Abstract;LastUpdateTimestamp\n")
 

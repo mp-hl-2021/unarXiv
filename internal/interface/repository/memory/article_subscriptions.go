@@ -1,4 +1,4 @@
-package subscriptions
+package memory
 
 import (
 	"github.com/mp-hl-2021/unarXiv/internal/domain"
@@ -6,50 +6,50 @@ import (
 	"sync"
 )
 
-type SearchSubscriptionRepo struct {
-	subscriptions map[model.UserId][]string
+type ArticleSubscriptionRepo struct {
+	subscriptions map[model.UserId][]model.ArticleId
 	mutex         *sync.Mutex
 }
 
-func NewSearchSubscriptionRepo() *SearchSubscriptionRepo {
-	return &SearchSubscriptionRepo{
-		subscriptions: make(map[model.UserId][]string),
+func NewArticleSubscriptionRepo() *ArticleSubscriptionRepo {
+	return &ArticleSubscriptionRepo{
+		subscriptions: make(map[model.UserId][]model.ArticleId),
 		mutex:         &sync.Mutex{},
 	}
 }
 
-func (a *SearchSubscriptionRepo) GetSearchSubscriptions(id model.UserId) ([]string, error) {
+func (a *ArticleSubscriptionRepo) GetArticleSubscriptions(id model.UserId) ([]model.ArticleId, error) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 	if subs, ok := a.subscriptions[id]; ok {
 		return subs, nil
 	} else {
-		return []string{}, nil
+		return []model.ArticleId{}, nil
 	}
 }
 
-func (a *SearchSubscriptionRepo) SubscribeForSearch(id model.UserId, query string) error {
+func (a *ArticleSubscriptionRepo) SubscribeForArticle(id model.UserId, articleId model.ArticleId) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 	if subs, ok := a.subscriptions[id]; !ok {
-		a.subscriptions[id] = []string{query}
+		a.subscriptions[id] = []model.ArticleId{articleId}
 	} else {
 		for _, aid := range subs {
-			if aid == query {
+			if aid == articleId {
 				return domain.AlreadySubscribed
 			}
 		}
-		a.subscriptions[id] = append(subs, query)
+		a.subscriptions[id] = append(subs, articleId)
 	}
 	return nil
 }
 
-func (a *SearchSubscriptionRepo) UnsubscribeFromSearch(id model.UserId, query string) error {
+func (a *ArticleSubscriptionRepo) UnsubscribeFromArticle(id model.UserId, articleId model.ArticleId) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 	if subs, ok := a.subscriptions[id]; ok {
 		for i, aid := range subs {
-			if aid == query {
+			if aid == articleId {
 				subs[i] = subs[len(subs)-1]
 				a.subscriptions[id] = subs[:len(subs)-1]
 				return nil
@@ -59,12 +59,12 @@ func (a *SearchSubscriptionRepo) UnsubscribeFromSearch(id model.UserId, query st
 	return domain.NotSubscribed
 }
 
-func (a *SearchSubscriptionRepo) IsSubscribedForSearch(id model.UserId, query string) (bool, error) {
+func (a *ArticleSubscriptionRepo) IsSubscribedForArticle(id model.UserId, articleId model.ArticleId) (bool, error) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 	if subs, ok := a.subscriptions[id]; ok {
 		for _, aid := range subs {
-			if aid == query {
+			if aid == articleId {
 				return true, nil
 			}
 		}
