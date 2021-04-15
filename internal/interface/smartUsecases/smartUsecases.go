@@ -2,9 +2,9 @@ package smartUsecases
 
 import (
     "github.com/mp-hl-2021/unarXiv/internal/domain/model"
-    "github.com/mp-hl-2021/unarXiv/internal/usecases"
-    "github.com/mp-hl-2021/unarXiv/internal/interface/accountstorage"
+    "github.com/mp-hl-2021/unarXiv/internal/interface/accounts"
     "github.com/mp-hl-2021/unarXiv/internal/interface/auth"
+    "github.com/mp-hl-2021/unarXiv/internal/usecases"
 
     "golang.org/x/crypto/bcrypt"
 
@@ -30,7 +30,7 @@ var smartSearchSubscription = model.UserSearchSubscription{
 }
 
 type SmartUsecases struct {
-    AccountStorage accountstorage.Interface
+    AccountStorage accounts.Interface
     Auth           auth.Interface
 }
 
@@ -96,7 +96,7 @@ func (d *SmartUsecases) Register(request usecases.AuthRequest) (usecases.AuthTok
     if err != nil {
         return "", err
     }
-    acc, err := d.AccountStorage.CreateAccount(accountstorage.Credentials{
+    acc, err := d.AccountStorage.CreateAccount(accounts.Credentials{
         Login:    request.Login,
         Password: string(hashedPassword),
     })
