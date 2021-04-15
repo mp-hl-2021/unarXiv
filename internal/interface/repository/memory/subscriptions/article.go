@@ -11,6 +11,15 @@ type ArticleSubscriptionRepo struct {
 	mutex         *sync.Mutex
 }
 
+func findIdInSubs(id model.ArticleId, subs []model.ArticleId) int {
+	for i, aid := range subs {
+		if aid == id {
+			return i
+		}
+	}
+	return -1
+}
+
 func NewArticleSubscriptionRepo() *ArticleSubscriptionRepo {
 	return &ArticleSubscriptionRepo{
 		subscriptions: make(map[model.UserId][]model.ArticleId),
@@ -31,43 +40,47 @@ func (a *ArticleSubscriptionRepo) GetArticleSubscriptions(id model.UserId) ([]mo
 func (a *ArticleSubscriptionRepo) SubscribeForArticle(id model.UserId, articleId model.ArticleId) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	if subs, ok := a.subscriptions[id]; !ok {
+	subs, ok := a.subscriptions[id]
+	if !ok {
 		a.subscriptions[id] = []model.ArticleId{articleId}
-	} else {
-		for _, aid := range subs {
-			if aid == articleId {
-				return domain.AlreadySubscribed
-			}
-		}
-		a.subscriptions[id] = append(subs, articleId)
+		return nil
 	}
+
+	if findIdInSubs(articleId, subs) != -1 {
+		return domain.AlreadySubscribed
+	}
+	a.subscriptions[id] = append(subs, articleId)
 	return nil
 }
 
 func (a *ArticleSubscriptionRepo) UnsubscribeFromArticle(id model.UserId, articleId model.ArticleId) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	if subs, ok := a.subscriptions[id]; ok {
-		for i, aid := range subs {
-			if aid == articleId {
-				subs[i] = subs[len(subs)-1]
-				a.subscriptions[id] = subs[:len(subs)-1]
-				return nil
-			}
-		}
+	subs, ok := a.subscriptions[id]
+	if !ok {
+		return domain.NotSubscribed
 	}
+
+	if index := findIdInSubs(articleId, subs); index != -1 {
+		subs[index] = subs[len(subs)-1]
+		a.subscriptions[id] = subs[:len(subs)-1]
+		return nil
+	}
+
 	return domain.NotSubscribed
 }
 
 func (a *ArticleSubscriptionRepo) IsSubscribedForArticle(id model.UserId, articleId model.ArticleId) (bool, error) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	if subs, ok := a.subscriptions[id]; ok {
-		for _, aid := range subs {
-			if aid == articleId {
-				return true, nil
-			}
-		}
+	subs, ok := a.subscriptions[id]
+	if !ok {
+		return false, nil
 	}
+
+	if index := findIdInSubs(articleId, subs); index != -1 {
+		return true, nil
+	}
+
 	return false, nil
 }

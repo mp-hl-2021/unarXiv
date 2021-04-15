@@ -50,28 +50,37 @@ func (a *ArticleRepo) UpdateArticle(article model.Article) error {
 func (a *ArticleRepo) Search(query model.SearchQuery, limit uint32) (model.SearchResult, error) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	offsetLeft := query.Offset
+	offset := query.Offset
 	result := model.SearchResult{
 		TotalMatchesCount: 0,
 		Articles:          []model.ArticleMeta{},
 	}
+
 	processMatch := func(article model.Article) {
 		result.TotalMatchesCount++
-		if offsetLeft > 0 {
-			offsetLeft--
-		} else if limit == 0 || uint32(len(result.Articles)) < limit {
+		if result.TotalMatchesCount < offset {
+			return
+		}
+
+		if limit == 0 || result.TotalMatchesCount < limit + offset {
 			result.Articles = append(result.Articles, article.ArticleMeta)
 		}
 	}
+
 	var re *regexp.Regexp
 	var err error
+
+	articleContainsMatch := func(a model.Article, r *regexp.Regexp) bool {
+		return r.MatchString(a.Title) ||
+			   r.MatchString(a.Abstract) ||
+			   r.MatchString(strings.Join(a.Authors, " "))
+	}
+
 	if re, err = regexp.Compile(query.Query); err != nil {
 		return result, err
 	}
 	for _, article := range a.articles {
-		if re.MatchString(article.Title) ||
-			re.MatchString(article.Abstract) ||
-			re.MatchString(strings.Join(article.Authors, " ")) {
+		if articleContainsMatch(article, re) {
 			processMatch(article)
 		}
 	}
