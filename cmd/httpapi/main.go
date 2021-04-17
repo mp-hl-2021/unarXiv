@@ -53,64 +53,70 @@ func main() {
     updatesRepo := repository.NewUpdatesRepoThroughQueries(articleRepo, artSubsRepo, searchSubsRepo, historyRepo)
 
     if articleDataPath != nil {
-		if data, err := os.ReadFile(*articleDataPath); err != nil {
-			fmt.Printf("Error occurred while reading a file: %v\n", err)
- 		} else {
-			reader := bufio.NewReader(bytes.NewReader(data))
-			_, _ = reader.ReadString('\n')  // skip header
-			for {
-				if line, err := reader.ReadString('\n'); err != nil {
-					break
-				} else {
-					tokens := strings.Split(strings.Trim(line, "\n"), ";")
-					artUrl, err := url.Parse(tokens[0])
-					if err != nil {
-						fmt.Printf("Failed to parse url: %v\n", err)
-						continue
-					}
-
-					article := model.Article{
-						ArticleMeta:     model.ArticleMeta{
-							Id:                  model.ArticleId(tokens[0]),
-							Title:               tokens[1],
-							Authors:             strings.Split(tokens[2], ", "),
-							Abstract:            tokens[3],
-							LastUpdateTimestamp: utils.Uint64Time(time.Now()),
-						},
-						FullDocumentURL: *artUrl,
-					}
-					if err = articleRepo.UpdateArticle(article); err != nil {
-						fmt.Printf("Failed to put an article into the repo: %v\n", err)
-					} else {
-						fmt.Printf("Added article %v to the repo!\n", article.Id)
-					}
-				}
-			}
-		}
+		loadArticlesFromFile(articleDataPath, articleRepo)
 	} else {
 		fmt.Println("article data path is not specified -> zero articles loaded")
 	}
 
-    unarXivUsecases := usecases.NewUsecases(
+	unarXivUsecases := usecases.NewUsecases(
 		authUsecases,
-    	articleRepo,
-    	historyRepo,
-    	updatesRepo,
-    	artSubsRepo,
-    	searchSubsRepo)
+		articleRepo,
+		historyRepo,
+		updatesRepo,
+		artSubsRepo,
+		searchSubsRepo)
 
-    httpApi := httpapi.New(unarXivUsecases)
+	httpApi := httpapi.New(unarXivUsecases)
 
-    httpServer := http.Server{
-        Addr:         "localhost:8080",
-        ReadTimeout:  10 * time.Second,
-        WriteTimeout: 10 * time.Second,
+	httpServer := http.Server{
+		Addr:         "localhost:8080",
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
 
-        Handler: httpApi.Router(),
-    }
-    fmt.Println("Listening on :8080")
-    err = httpServer.ListenAndServe()
-    if err != nil {
-        panic(err)
-    }
+		Handler: httpApi.Router(),
+	}
+	fmt.Println("Listening on :8080")
+	err = httpServer.ListenAndServe()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func loadArticlesFromFile(articleDataPath *string, articleRepo *memory.ArticleRepo) {
+	var data []byte
+	var err error
+	if data, err = os.ReadFile(*articleDataPath); err != nil {
+		fmt.Printf("Error occurred while reading a file: %v\n", err)
+		return
+	}
+	reader := bufio.NewReader(bytes.NewReader(data))
+	_, _ = reader.ReadString('\n') // skip header
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		tokens := strings.Split(strings.Trim(line, "\n"), ";")
+		artUrl, err := url.Parse(tokens[0])
+		if err != nil {
+			fmt.Printf("Failed to parse url: %v\n", err)
+			continue
+		}
+
+		article := model.Article{
+			ArticleMeta: model.ArticleMeta{
+				Id:                  model.ArticleId(tokens[0]),
+				Title:               tokens[1],
+				Authors:             strings.Split(tokens[2], ", "),
+				Abstract:            tokens[3],
+				LastUpdateTimestamp: utils.Uint64Time(time.Now()),
+			},
+			FullDocumentURL: *artUrl,
+		}
+		if err = articleRepo.UpdateArticle(article); err != nil {
+			fmt.Printf("Failed to put an article into the repo: %v\n", err)
+		} else {
+			fmt.Printf("Added article %v to the repo!\n", article.Id)
+		}
+	}
 }
