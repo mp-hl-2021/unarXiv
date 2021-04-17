@@ -7,5 +7,5 @@ func Uint64Time(timestamp time.Time) uint64 {
 }
 
 func TimeFromUint64(nsecs uint64) time.Time {
-	return time.Unix(0, int64(nsecs))
+	return time.Unix(0, int64(nsecs)).Local()
 }

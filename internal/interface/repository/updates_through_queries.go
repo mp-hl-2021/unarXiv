@@ -4,14 +4,26 @@ import (
 	"github.com/mp-hl-2021/unarXiv/internal/domain"
 	"github.com/mp-hl-2021/unarXiv/internal/domain/model"
 	"github.com/mp-hl-2021/unarXiv/internal/domain/repository"
-	"github.com/mp-hl-2021/unarXiv/internal/interface/repository/memory/subscriptions"
 )
 
 type UpdatesRepoThroughQueries struct {
 	articleRepo     repository.ArticleRepo
-	articleSubsRepo subscriptions.ArticleSubscriptionRepo
-	searchSubsRepo  subscriptions.SearchSubscriptionRepo
+	articleSubsRepo repository.ArticleSubscriptionRepo
+	searchSubsRepo  repository.SearchSubscriptionRepo
 	historyRepo     repository.HistoryRepo
+}
+
+func NewUpdatesRepoThroughQueries(
+	articleRepo repository.ArticleRepo,
+	articleSubsRepo repository.ArticleSubscriptionRepo,
+	searchSubsRepo repository.SearchSubscriptionRepo,
+	historyRepo repository.HistoryRepo) *UpdatesRepoThroughQueries {
+	return &UpdatesRepoThroughQueries{
+		articleRepo:     articleRepo,
+		articleSubsRepo: articleSubsRepo,
+		searchSubsRepo:  searchSubsRepo,
+		historyRepo:     historyRepo,
+	}
 }
 
 func (u *UpdatesRepoThroughQueries) GetArticleSubscriptionsUpdates(id model.UserId) ([]model.ArticleMeta, error) {

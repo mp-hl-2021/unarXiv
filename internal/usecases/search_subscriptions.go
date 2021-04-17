@@ -1,8 +1,8 @@
-package subscriptions
+package usecases
 
 import "github.com/mp-hl-2021/unarXiv/internal/domain/model"
 
-type SearchInterface interface {
+type SearchSubscriptionInterface interface {
     SubscribeForSearch(userId model.UserId, query string) (model.UserSearchSubscription, error)
     UnsubscribeFromSearch(userId model.UserId, query string) error
     CheckSearchSubscription(userId model.UserId, query string) (*model.UserSearchSubscription, error)
