@@ -71,16 +71,16 @@ func (d *DummyUsecases) ClearArticleHistory(id model.UserId) error {
     return nil
 }
 
-func (d *DummyUsecases) GetArticleLastAccess(userId model.UserId, articleId model.ArticleId) (*model.UserArticleAccess, error) {
-    return &model.UserArticleAccess{
-        UserId:    "0",
-        ArticleId: "dummy",
-        Timestamp: 293,
-    }, nil
+func (d *DummyUsecases) GetArticleLastAccess(userId model.UserId, articleId model.ArticleId) (model.UserArticleAccess, error) {
+	return model.UserArticleAccess{
+		UserId:    "0",
+		ArticleId: "dummy",
+		Timestamp: 293,
+	}, nil
 }
 
-func (d *DummyUsecases) GetSearchLastAccess(userId model.UserId, query string) (*model.UserSearchAccess, error) {
-    return &model.UserSearchAccess{
+func (d *DummyUsecases) GetSearchLastAccess(userId model.UserId, query string) (model.UserSearchAccess, error) {
+    return model.UserSearchAccess{
         UserId:    "0",
         Query:     "dummy",
         Timestamp: 2394,
