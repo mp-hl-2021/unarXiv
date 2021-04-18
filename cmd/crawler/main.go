@@ -44,10 +44,10 @@ func CrawlArticles(cfg CrawlerConfiguration) []string {
             used[url] = true
             urlQueue <- url
         }
-	})
+    })
     c.OnRequest(func(r *colly.Request) {
-		fmt.Println("Visiting", r.URL)
-	})
+        fmt.Println("Visiting", r.URL)
+    })
 
 
     urlQueue <- cfg.CrawlStart
