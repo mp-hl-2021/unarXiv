@@ -32,7 +32,7 @@ func CreateTables(db *sql.DB) {
         Table{Name: "Accounts",                Fields: "Id serial PRIMARY KEY, Login text, Password text"},
         Table{Name: "Articles",                Fields: "Id serial PRIMARY KEY, Title text, Abstract text, LastUpdateTimestamp timestamp"},
         Table{Name: "Authors",                 Fields: "Id serial PRIMARY KEY, Name text"},
-        Table{Name: "AuthorsOfArticles",       Fields: "ID serial PRIMARY KEY, ArticleId integer REFERENCES Articles (Id), AuthorId integer REFERENCES Authors (Id)"},
+        Table{Name: "AuthorsOfArticles",       Fields: "Id serial PRIMARY KEY, ArticleId integer REFERENCES Articles (Id), AuthorId integer REFERENCES Authors (Id)"},
         Table{Name: "AccountArticleRelations", Fields: "Id serial PRIMARY KEY, UserId integer REFERENCES Accounts (Id), ArticleId integer REFERENCES Articles (Id), IsSubscribed boolean, LastAccess timestamp"},
         Table{Name: "AccountSearchRelations",  Fields: "Id serial PRIMARY KEY, UserId integer REFERENCES Accounts (Id), Search text, IsSubscribed boolean, LastAccess timestamp"},
     }
