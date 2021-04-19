@@ -10,4 +10,9 @@ type SearchSubscriptionInterface interface {
     GetSearchSubscriptions(userId model.UserId) ([]model.UserSearchSubscription, error)
 
     GetSearchUpdates(userId model.UserId) ([]string, error)
+
+    GetSearchHistory(id model.UserId) (model.UserSearchHistory, error)
+    ClearSearchHistory(id model.UserId) error
+
+    GetSearchLastAccess(userId model.UserId, query string) (model.UserSearchAccess, error)
 }

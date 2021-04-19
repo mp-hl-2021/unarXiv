@@ -94,3 +94,55 @@ func (a *ArticleSubscriptionRepo) UnsubscribeFromArticle(id model.UserId, articl
         return domain.NotSubscribed
     }
 }
+
+func (a *ArticleSubscriptionRepo) ArticleAccessOccurred(id model.UserId, articleId model.ArticleId) error {
+    a.CreateRelationIfNotExists(id, articleId)
+    _, err := a.db.Exec("UPDATE AccountArticleRelations SET LastAccess = $1 WHERE UserId = $2 AND ArticleID = $3;", time.Now(), id, articleId)
+    if err != nil {
+        panic(err)
+    }
+    return nil
+}
+
+func (a *ArticleSubscriptionRepo) GetArticleLastAccessTimestamp(userId model.UserId, articleId model.ArticleId) (uint64, error) {
+    rows, err := a.db.Query(fmt.Sprintf("SELECT LastAccess FROM AccountArticleRelations WHERE UserId = %s AND ArticleId = '%s';", userId, articleId))
+    if err != nil {
+        panic(err)
+    }
+    defer rows.Close()
+    for rows.Next() {
+        var lastAccess uint64
+        if err := rows.Scan(&lastAccess); err != nil {
+            panic(err)
+        } else {
+            return lastAccess, nil
+        }
+    }
+    return 0, domain.NeverAccessed
+}
+
+func (a *ArticleSubscriptionRepo) GetArticleHistory(userId model.UserId) ([]model.ArticleId, error) {
+    rows, err := a.db.Query(fmt.Sprintf("SELECT ArticleId FROM AccountArticleRelations WHERE UserId = %s;", userId))
+    if err != nil {
+        panic(err)
+    }
+    defer rows.Close()
+    result := []model.ArticleId{}
+    for rows.Next() {
+        var articleId model.ArticleId
+        if err := rows.Scan(&articleId); err != nil {
+            panic(err)
+        } else {
+            result = append(result, articleId)
+        }
+    }
+    return result, nil
+}
+
+func (a *ArticleSubscriptionRepo) ClearArticleHistory(userId model.UserId) error {
+    _, err := a.db.Exec("DELETE FROM AccountArticleRelations WHERE UserId = $1;", userId)
+    if err != nil {
+        panic(err)
+    }
+    return nil
+}

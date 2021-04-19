@@ -95,3 +95,55 @@ func (a *SearchSubscriptionRepo) UnsubscribeFromSearch(id model.UserId, query st
         return domain.NotSubscribed
     }
 }
+
+func (a *SearchSubscriptionRepo) SearchAccessOccurred(id model.UserId, query string) error {
+    a.CreateRelationIfNotExists(id, query)
+    _, err := a.db.Exec("UPDATE AccountSearchRelations SET LastAccess = $1 WHERE UserId = $2 AND Search = $3;", time.Now(), id, query)
+    if err != nil {
+        panic(err)
+    }
+    return nil
+}
+
+func (a *SearchSubscriptionRepo) GetSearchLastAccessTimestamp(userId model.UserId, query string) (uint64, error) {
+    rows, err := a.db.Query(fmt.Sprintf("SELECT LastAccess FROM AccountSearchRelations WHERE UserId = %s AND Search = '%s';", userId, query))
+    if err != nil {
+        panic(err)
+    }
+    defer rows.Close()
+    for rows.Next() {
+        var lastAccess uint64
+        if err := rows.Scan(&lastAccess); err != nil {
+            panic(err)
+        } else {
+            return lastAccess, nil
+        }
+    }
+    return 0, domain.NeverAccessed
+}
+
+func (a *SearchSubscriptionRepo) GetSearchHistory(userId model.UserId) ([]string, error) {
+    rows, err := a.db.Query(fmt.Sprintf("SELECT ArticleId FROM AccountSearchRelations WHERE UserId = %s;", userId))
+    if err != nil {
+        panic(err)
+    }
+    defer rows.Close()
+    result := []string{}
+    for rows.Next() {
+        var query string
+        if err := rows.Scan(&query); err != nil {
+            panic(err)
+        } else {
+            result = append(result, query)
+        }
+    }
+    return result, nil
+}
+
+func (a *SearchSubscriptionRepo) ClearSearchHistory(userId model.UserId) error {
+    _, err := a.db.Exec("DELETE FROM AccountSearchRelations WHERE UserId = $1;", userId)
+    if err != nil {
+        panic(err)
+    }
+    return nil
+}

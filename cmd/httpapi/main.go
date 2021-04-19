@@ -55,10 +55,9 @@ func main() {
 
     authUsecases := auth.NewUsecases(memory.NewAccountsRepo(db), jwtAuth)
     articleRepo := memory.NewArticleRepo(db)
-    historyRepo := memory.NewHistoryRepo()
     artSubsRepo := memory.NewArticleSubscriptionRepo(db)
     searchSubsRepo := memory.NewSearchSubscriptionRepo(db)
-    updatesRepo := repository.NewUpdatesRepoThroughQueries(articleRepo, artSubsRepo, searchSubsRepo, historyRepo)
+    updatesRepo := repository.NewUpdatesRepoThroughQueries(articleRepo, artSubsRepo, searchSubsRepo)
 
     if articleDataPath != nil {
         loadArticlesFromFile(articleDataPath, articleRepo)
@@ -69,7 +68,6 @@ func main() {
     unarXivUsecases := usecases.NewUsecases(
         authUsecases,
         articleRepo,
-        historyRepo,
         updatesRepo,
         artSubsRepo,
         searchSubsRepo)

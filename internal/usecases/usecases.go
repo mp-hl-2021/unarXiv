@@ -9,7 +9,6 @@ type Interface interface {
 	AuthInterface
 	ArticleInterface
 	SearchInterface
-	HistoryInterface
 	ArticleSubscriptionInterface
 	SearchSubscriptionInterface
 }
@@ -17,7 +16,6 @@ type Interface interface {
 type usecasesThroughRepos struct {
 	auth                    AuthInterface
 	articleRepo             repository.ArticleRepo
-	historyRepo             repository.HistoryRepo
 	updatesRepo             repository.UpdatesRepo
 	articleSubscriptionRepo repository.ArticleSubscriptionRepo
 	searchSubscriptionRepo  repository.SearchSubscriptionRepo
@@ -26,14 +24,12 @@ type usecasesThroughRepos struct {
 func NewUsecases(
 	auth AuthInterface,
 	articleRepo repository.ArticleRepo,
-	historyRepo repository.HistoryRepo,
 	updatesRepo repository.UpdatesRepo,
 	articleSubscriptionRepo repository.ArticleSubscriptionRepo,
 	searchSubscriptionRepo repository.SearchSubscriptionRepo) *usecasesThroughRepos {
 	return &usecasesThroughRepos{
 		auth:                    auth,
 		articleRepo:             articleRepo,
-		historyRepo:             historyRepo,
 		updatesRepo:             updatesRepo,
 		articleSubscriptionRepo: articleSubscriptionRepo,
 		searchSubscriptionRepo:  searchSubscriptionRepo,
@@ -58,7 +54,7 @@ func (u *usecasesThroughRepos) AccessArticle(articleId model.ArticleId, userId *
 		return model.Article{}, err
 	}
 	if userId != nil {
-		if err := u.historyRepo.ArticleAccessOccurred(*userId, articleId); err != nil {
+		if err := u.articleSubscriptionRepo.ArticleAccessOccurred(*userId, articleId); err != nil {
 			return model.Article{}, err
 		}
 	}
@@ -71,7 +67,7 @@ func (u *usecasesThroughRepos) Search(query model.SearchQuery, userId *model.Use
 		return model.SearchResult{}, err
 	}
 	if userId != nil {
-		if err := u.historyRepo.SearchAccessOccurred(*userId, query.Query); err != nil {
+		if err := u.searchSubscriptionRepo.SearchAccessOccurred(*userId, query.Query); err != nil {
 			return model.SearchResult{}, err
 		}
 	}
@@ -79,7 +75,7 @@ func (u *usecasesThroughRepos) Search(query model.SearchQuery, userId *model.Use
 }
 
 func (u *usecasesThroughRepos) GetSearchHistory(id model.UserId) (model.UserSearchHistory, error) {
-	queries, err := u.historyRepo.GetSearchHistory(id)
+	queries, err := u.searchSubscriptionRepo.GetSearchHistory(id)
 	if err != nil {
 		return model.UserSearchHistory{}, err
 	}
@@ -90,11 +86,11 @@ func (u *usecasesThroughRepos) GetSearchHistory(id model.UserId) (model.UserSear
 }
 
 func (u *usecasesThroughRepos) ClearSearchHistory(id model.UserId) error {
-	return u.historyRepo.ClearSearchHistory(id)
+	return u.searchSubscriptionRepo.ClearSearchHistory(id)
 }
 
 func (u *usecasesThroughRepos) GetArticleHistory(id model.UserId) (model.UserArticleHistory, error) {
-	articles, err := u.historyRepo.GetArticleHistory(id)
+	articles, err := u.articleSubscriptionRepo.GetArticleHistory(id)
 	if err != nil {
 		return model.UserArticleHistory{}, err
 	}
@@ -113,11 +109,11 @@ func (u *usecasesThroughRepos) GetArticleHistory(id model.UserId) (model.UserArt
 }
 
 func (u *usecasesThroughRepos) ClearArticleHistory(id model.UserId) error {
-	return u.historyRepo.ClearArticleHistory(id)
+	return u.articleSubscriptionRepo.ClearArticleHistory(id)
 }
 
 func (u *usecasesThroughRepos) GetArticleLastAccess(userId model.UserId, articleId model.ArticleId) (model.UserArticleAccess, error) {
-	ts, err := u.historyRepo.GetArticleLastAccessTimestamp(userId, articleId)
+	ts, err := u.articleSubscriptionRepo.GetArticleLastAccessTimestamp(userId, articleId)
 	if err != nil {
 		return model.UserArticleAccess{}, err
 	}
@@ -129,7 +125,7 @@ func (u *usecasesThroughRepos) GetArticleLastAccess(userId model.UserId, article
 }
 
 func (u *usecasesThroughRepos) GetSearchLastAccess(userId model.UserId, query string) (model.UserSearchAccess, error) {
-	ts, err := u.historyRepo.GetSearchLastAccessTimestamp(userId, query)
+	ts, err := u.searchSubscriptionRepo.GetSearchLastAccessTimestamp(userId, query)
 	if err != nil {
 		return model.UserSearchAccess{}, err
 	}
