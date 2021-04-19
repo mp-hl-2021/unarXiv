@@ -3,28 +3,14 @@ package main
 import (
     "fmt"
     "database/sql"
+    "os"
 
-    "github.com/tkanos/gonfig"
     _ "github.com/lib/pq"
 )
 
 type Table struct {
     Name   string
     Fields string
-}
-
-type DBInitConfiguration struct {
-    DBUsername      string
-    DBName       string
-}
-
-func GetDBInitConfiguration(cfgPath string) DBInitConfiguration {
-    cfg := DBInitConfiguration{}
-    err := gonfig.GetConf(cfgPath, &cfg)
-    if err != nil {
-        panic(err)
-    }
-    return cfg
 }
 
 func CreateTables(db *sql.DB) {
@@ -49,10 +35,8 @@ func CreateTables(db *sql.DB) {
 }
 
 func main() {
-    cfg := GetDBInitConfiguration("cmd/initdb/initdbcfg.json")
-
     fmt.Println("Connecting to DB")
-    db, err := sql.Open("postgres", fmt.Sprintf("user=%s dbname=%s sslmode=disable", cfg.DBUsername, cfg.DBName))
+    db, err := sql.Open("postgres", fmt.Sprintf("user=%s dbname=%s sslmode=disable", os.Getenv("dbusername"), os.Getenv("dbname")))
     if err != nil {
         panic(err)
     }
