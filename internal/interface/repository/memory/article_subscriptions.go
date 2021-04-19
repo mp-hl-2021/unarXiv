@@ -85,7 +85,6 @@ func (a *ArticleSubscriptionRepo) SubscribeForArticle(id model.UserId, articleId
 
 func (a *ArticleSubscriptionRepo) UnsubscribeFromArticle(id model.UserId, articleId model.ArticleId) error {
     if ok, _ := a.IsSubscribedForArticle(id, articleId); ok {
-        a.CreateRelationIfNotExists(id, articleId)
         _, err := a.db.Exec("UPDATE AccountArticleRelations SET IsSubscribed = false WHERE UserId = $1 AND ArticleID = $2;", id, articleId)
         if err != nil {
             panic(err)

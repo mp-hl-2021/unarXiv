@@ -3,71 +3,95 @@ package memory
 import (
     "github.com/mp-hl-2021/unarXiv/internal/domain"
     "github.com/mp-hl-2021/unarXiv/internal/domain/model"
-    "sync"
+    "database/sql"
+    "fmt"
+    "time"
+
+    _ "github.com/lib/pq"
 )
 
 type SearchSubscriptionRepo struct {
-    subscriptions map[model.UserId][]string
-    mutex         *sync.Mutex
+    db *sql.DB
 }
 
-func NewSearchSubscriptionRepo() *SearchSubscriptionRepo {
-    return &SearchSubscriptionRepo{
-        subscriptions: make(map[model.UserId][]string),
-        mutex:         &sync.Mutex{},
-    }
+func NewSearchSubscriptionRepo(db *sql.DB) *SearchSubscriptionRepo {
+    return &SearchSubscriptionRepo{db: db}
 }
 
 func (a *SearchSubscriptionRepo) GetSearchSubscriptions(id model.UserId) ([]string, error) {
-    a.mutex.Lock()
-    defer a.mutex.Unlock()
-    if subs, ok := a.subscriptions[id]; ok {
-        return subs, nil
-    } else {
-        return []string{}, nil
+    rows, err := a.db.Query(fmt.Sprintf("SELECT Search FROM AccountSearchRelations where UserId = %d;", id))
+    if err != nil {
+        panic(err)
+    }
+    defer rows.Close()
+    subs := []string{}
+    for rows.Next() {
+        var query string
+        if err := rows.Scan(&query); err != nil {
+            panic(err)
+        } else {
+            subs = append(subs, query)
+        }
+    }
+    return subs, nil
+}
+
+func (a *SearchSubscriptionRepo) IsSubscribedForSearch(id model.UserId, query string) (bool, error) {
+    rows, err := a.db.Query(fmt.Sprintf("SELECT IsSubscribed FROM AccountSearchRelations WHERE UserId = %s AND Search = '%s';", id, query))
+    if err != nil {
+        panic(err)
+    }
+    defer rows.Close()
+    for rows.Next() {
+        var isSubscribed bool
+        if err := rows.Scan(&isSubscribed); err != nil {
+            panic(err)
+        } else {
+            return isSubscribed, nil
+        }
+    }
+    return false, nil
+}
+
+func (a *SearchSubscriptionRepo) CreateRelationIfNotExists(userId model.UserId, query string) {
+    rows, err := a.db.Query(fmt.Sprintf("SELECT IsSubscribed FROM AccountSearchRelations WHERE UserId = %s AND Search = '%s';", userId, query))
+    if err != nil {
+        panic(err)
+    }
+    defer rows.Close()
+    relationExists := false
+    for rows.Next() {
+        relationExists = true
+    }
+    if !relationExists {
+        _, err := a.db.Exec("INSERT INTO AccountSearchRelations (UserId, Search, IsSubscribed, LastAccess) VALUES ($1, $2, false, $3);", userId, query, time.Now())
+        if err != nil {
+            panic(err)
+        }
     }
 }
 
+
 func (a *SearchSubscriptionRepo) SubscribeForSearch(id model.UserId, query string) error {
-    a.mutex.Lock()
-    defer a.mutex.Unlock()
-    if subs, ok := a.subscriptions[id]; !ok {
-        a.subscriptions[id] = []string{query}
-    } else {
-        for _, aid := range subs {
-            if aid == query {
-                return domain.AlreadySubscribed
-            }
-        }
-        a.subscriptions[id] = append(subs, query)
+    if ok, _ := a.IsSubscribedForSearch(id, query); ok {
+        return domain.AlreadySubscribed
+    }
+    a.CreateRelationIfNotExists(id, query)
+    _, err := a.db.Exec("UPDATE AccountSearchRelations SET IsSubscribed = true WHERE UserId = $1 AND Search = $2;", id, query)
+    if err != nil {
+        panic(err)
     }
     return nil
 }
 
 func (a *SearchSubscriptionRepo) UnsubscribeFromSearch(id model.UserId, query string) error {
-    a.mutex.Lock()
-    defer a.mutex.Unlock()
-    if subs, ok := a.subscriptions[id]; ok {
-        for i, aid := range subs {
-            if aid == query {
-                subs[i] = subs[len(subs)-1]
-                a.subscriptions[id] = subs[:len(subs)-1]
-                return nil
-            }
+    if ok, _ := a.IsSubscribedForSearch(id, query); ok {
+        _, err := a.db.Exec("UPDATE AccountSearchRelations SET IsSubscribed = false WHERE UserId = $1 AND Search = $2;", id, query)
+        if err != nil {
+            panic(err)
         }
+        return nil
+    } else {
+        return domain.NotSubscribed
     }
-    return domain.NotSubscribed
-}
-
-func (a *SearchSubscriptionRepo) IsSubscribedForSearch(id model.UserId, query string) (bool, error) {
-    a.mutex.Lock()
-    defer a.mutex.Unlock()
-    if subs, ok := a.subscriptions[id]; ok {
-        for _, aid := range subs {
-            if aid == query {
-                return true, nil
-            }
-        }
-    }
-    return false, nil
 }

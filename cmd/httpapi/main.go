@@ -57,7 +57,7 @@ func main() {
     articleRepo := memory.NewArticleRepo(db)
     historyRepo := memory.NewHistoryRepo()
     artSubsRepo := memory.NewArticleSubscriptionRepo(db)
-    searchSubsRepo := memory.NewSearchSubscriptionRepo()
+    searchSubsRepo := memory.NewSearchSubscriptionRepo(db)
     updatesRepo := repository.NewUpdatesRepoThroughQueries(articleRepo, artSubsRepo, searchSubsRepo, historyRepo)
 
     if articleDataPath != nil {
