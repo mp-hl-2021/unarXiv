@@ -1,58 +1,58 @@
 package memory
 
 import (
-	"github.com/mp-hl-2021/unarXiv/internal/interface/accounts"
-	"strconv"
-	"sync"
+    "github.com/mp-hl-2021/unarXiv/internal/interface/accounts"
+    "strconv"
+    "fmt"
+    "database/sql"
+
+    _ "github.com/lib/pq"
 )
 
 type AccountsRepo struct {
-	accountsById    map[string]accounts.Account
-	accountsByLogin map[string]accounts.Account
-	nextId          uint64
-	mutex           *sync.Mutex
+    db *sql.DB
 }
 
-func NewAccountsRepo() *AccountsRepo {
-	return &AccountsRepo{
-		accountsById:    make(map[string]accounts.Account),
-		accountsByLogin: make(map[string]accounts.Account),
-		mutex:           &sync.Mutex{},
-	}
+func NewAccountsRepo(db *sql.DB) *AccountsRepo {
+    return &AccountsRepo{db: db}
 }
 
-func (m *AccountsRepo) CreateAccount(cred accounts.Credentials) (accounts.Account, error) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	if _, ok := m.accountsByLogin[cred.Login]; ok {
-		return accounts.Account{}, accounts.ErrAlreadyExists
-	}
-	a := accounts.Account{
-		Id:          strconv.FormatUint(m.nextId, 16),
-		Credentials: cred,
-	}
-	m.accountsById[a.Id] = a
-	m.accountsByLogin[a.Login] = a
-	m.nextId++
-	return a, nil
+func (m *AccountsRepo) GetAccountWithCondition(condition string) (accounts.Account, error) {
+    rows, err := m.db.Query(fmt.Sprintf("SELECT * FROM Accounts where %s;", condition))
+    if err != nil {
+        panic(err)
+    }
+    defer rows.Close()
+    a := accounts.Account{}
+    for rows.Next() {
+        if err := rows.Scan(&a.Id, &a.Credentials.Login, &a.Credentials.Password); err != nil {
+            panic(err)
+        } else {
+            return a, nil
+        }
+    }
+    return a, accounts.ErrNotFound
 }
 
 func (m *AccountsRepo) GetAccountById(id string) (accounts.Account, error) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	a, ok := m.accountsById[id]
-	if !ok {
-		return a, accounts.ErrNotFound
-	}
-	return a, nil
+    return m.GetAccountWithCondition(fmt.Sprintf("id=%d", id))
 }
 
 func (m *AccountsRepo) GetAccountByLogin(login string) (accounts.Account, error) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	a, ok := m.accountsByLogin[login]
-	if !ok {
-		return a, accounts.ErrNotFound
-	}
-	return a, nil
+    return m.GetAccountWithCondition(fmt.Sprintf("login='%s'", login))
+}
+
+func (m *AccountsRepo) CreateAccount(cred accounts.Credentials) (accounts.Account, error) {
+    if _, err := m.GetAccountByLogin(cred.Login); err == nil {
+        return accounts.Account{}, accounts.ErrAlreadyExists
+    }
+    var id uint64
+    err := m.db.QueryRow(fmt.Sprintf("INSERT INTO Accounts (Login, Password) VALUES ('%s', '%s') RETURNING Id;", cred.Login, cred.Password)).Scan(&id)
+    if err != nil {
+        panic(err)
+    }
+    return accounts.Account{
+        Id:          strconv.FormatUint(id, 16),
+        Credentials: cred,
+    }, nil
 }

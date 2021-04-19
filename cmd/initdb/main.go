@@ -16,11 +16,10 @@ type Table struct {
 func CreateTables(db *sql.DB) {
     tables := []Table{
         Table{Name: "Accounts",                Fields: "Id serial PRIMARY KEY, Login text, Password text"},
-        Table{Name: "Articles",                Fields: "Id serial PRIMARY KEY, Title text, Abstract text, LastUpdateTimestamp timestamp"},
-        Table{Name: "Authors",                 Fields: "Id serial PRIMARY KEY, Name text"},
-        Table{Name: "AuthorsOfArticles",       Fields: "Id serial PRIMARY KEY, ArticleId integer REFERENCES Articles (Id), AuthorId integer REFERENCES Authors (Id)"},
-        Table{Name: "AccountArticleRelations", Fields: "Id serial PRIMARY KEY, UserId integer REFERENCES Accounts (Id), ArticleId integer REFERENCES Articles (Id), IsSubscribed boolean, LastAccess timestamp"},
-        Table{Name: "AccountSearchRelations",  Fields: "Id serial PRIMARY KEY, UserId integer REFERENCES Accounts (Id), Search text, IsSubscribed boolean, LastAccess timestamp"},
+        Table{Name: "Articles",                Fields: "Id text PRIMARY KEY, Title text, Abstract text, LastUpdateTimestamp bigint, FullDocumentURL text"},
+        Table{Name: "AuthorsOfArticles",       Fields: "ArticleId text REFERENCES Articles (Id), AuthorName text"},
+        Table{Name: "AccountArticleRelations", Fields: "UserId integer REFERENCES Accounts (Id), ArticleId text REFERENCES Articles (Id), IsSubscribed boolean, LastAccess bigint"},
+        Table{Name: "AccountSearchRelations",  Fields: "UserId integer REFERENCES Accounts (Id), Search text, IsSubscribed boolean, LastAccess bigint"},
     }
 
     fmt.Println("Creating tables")
