@@ -4,7 +4,6 @@ import (
     "github.com/mp-hl-2021/unarXiv/internal/domain"
     "github.com/mp-hl-2021/unarXiv/internal/domain/model"
     "database/sql"
-    "fmt"
     // "regexp"
     // "strings"
 
@@ -20,7 +19,7 @@ func NewArticleRepo(db *sql.DB) *ArticleRepo {
 }
 
 func (a *ArticleRepo) ArticleById(id model.ArticleId) (model.Article, error) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT Id, Title, Abstract, LastUpdateTimestamp FROM Articles WHERE Id = '%s';", id))
+    rows, err := a.db.Query("SELECT Id, Title, Abstract, LastUpdateTimestamp FROM Articles WHERE Id = $1;", id)
     if err != nil {
         panic(err)
     }
@@ -30,7 +29,7 @@ func (a *ArticleRepo) ArticleById(id model.ArticleId) (model.Article, error) {
         if err := rows.Scan(&article.Id, &article.Title, &article.Abstract, &article.LastUpdateTimestamp); err != nil {
             panic(err)
         } else {
-            rows, err := a.db.Query(fmt.Sprintf("SELECT AuthorName FROM AuthorsOfArticles where ArticleId = '%s';", id))
+            rows, err := a.db.Query("SELECT AuthorName FROM AuthorsOfArticles where ArticleId = $1;", id)
             if err != nil {
                 panic(err)
             }

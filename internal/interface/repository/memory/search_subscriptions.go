@@ -4,7 +4,6 @@ import (
     "github.com/mp-hl-2021/unarXiv/internal/domain"
     "github.com/mp-hl-2021/unarXiv/internal/domain/model"
     "database/sql"
-    "fmt"
     "time"
 
     _ "github.com/lib/pq"
@@ -19,7 +18,7 @@ func NewSearchSubscriptionRepo(db *sql.DB) *SearchSubscriptionRepo {
 }
 
 func (a *SearchSubscriptionRepo) GetSearchSubscriptions(id model.UserId) ([]string, error) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT Search FROM AccountSearchRelations where UserId = %d;", id))
+    rows, err := a.db.Query("SELECT Search FROM AccountSearchRelations where UserId = $1;", id)
     if err != nil {
         panic(err)
     }
@@ -37,7 +36,7 @@ func (a *SearchSubscriptionRepo) GetSearchSubscriptions(id model.UserId) ([]stri
 }
 
 func (a *SearchSubscriptionRepo) IsSubscribedForSearch(id model.UserId, query string) (bool, error) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT IsSubscribed FROM AccountSearchRelations WHERE UserId = %s AND Search = '%s';", id, query))
+    rows, err := a.db.Query("SELECT IsSubscribed FROM AccountSearchRelations WHERE UserId = $1 AND Search = $2;", id, query)
     if err != nil {
         panic(err)
     }
@@ -54,7 +53,7 @@ func (a *SearchSubscriptionRepo) IsSubscribedForSearch(id model.UserId, query st
 }
 
 func (a *SearchSubscriptionRepo) CreateRelationIfNotExists(userId model.UserId, query string) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT IsSubscribed FROM AccountSearchRelations WHERE UserId = %s AND Search = '%s';", userId, query))
+    rows, err := a.db.Query("SELECT IsSubscribed FROM AccountSearchRelations WHERE UserId = $1 AND Search = $2;", userId, query)
     if err != nil {
         panic(err)
     }
@@ -106,7 +105,7 @@ func (a *SearchSubscriptionRepo) SearchAccessOccurred(id model.UserId, query str
 }
 
 func (a *SearchSubscriptionRepo) GetSearchLastAccessTimestamp(userId model.UserId, query string) (uint64, error) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT LastAccess FROM AccountSearchRelations WHERE UserId = %s AND Search = '%s';", userId, query))
+    rows, err := a.db.Query("SELECT LastAccess FROM AccountSearchRelations WHERE UserId = $1 AND Search = $2;", userId, query)
     if err != nil {
         panic(err)
     }
@@ -123,7 +122,7 @@ func (a *SearchSubscriptionRepo) GetSearchLastAccessTimestamp(userId model.UserI
 }
 
 func (a *SearchSubscriptionRepo) GetSearchHistory(userId model.UserId) ([]string, error) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT ArticleId FROM AccountSearchRelations WHERE UserId = %s;", userId))
+    rows, err := a.db.Query("SELECT ArticleId FROM AccountSearchRelations WHERE UserId = $1;", userId)
     if err != nil {
         panic(err)
     }

@@ -18,7 +18,7 @@ func NewAccountsRepo(db *sql.DB) *AccountsRepo {
 }
 
 func (m *AccountsRepo) GetAccountWithCondition(condition string) (accounts.Account, error) {
-    rows, err := m.db.Query(fmt.Sprintf("SELECT * FROM Accounts where %s;", condition))
+    rows, err := m.db.Query("SELECT * FROM Accounts where $1;", condition)
     if err != nil {
         panic(err)
     }
@@ -47,7 +47,7 @@ func (m *AccountsRepo) CreateAccount(cred accounts.Credentials) (accounts.Accoun
         return accounts.Account{}, accounts.ErrAlreadyExists
     }
     var id uint64
-    err := m.db.QueryRow(fmt.Sprintf("INSERT INTO Accounts (Login, Password) VALUES ('%s', '%s') RETURNING Id;", cred.Login, cred.Password)).Scan(&id)
+    err := m.db.QueryRow("INSERT INTO Accounts (Login, Password) VALUES ($1, $2) RETURNING Id;", cred.Login, cred.Password).Scan(&id)
     if err != nil {
         panic(err)
     }

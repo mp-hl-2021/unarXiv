@@ -4,7 +4,6 @@ import (
     "github.com/mp-hl-2021/unarXiv/internal/domain"
     "github.com/mp-hl-2021/unarXiv/internal/domain/model"
     "database/sql"
-    "fmt"
     "time"
 
     _ "github.com/lib/pq"
@@ -19,7 +18,7 @@ func NewArticleSubscriptionRepo(db *sql.DB) *ArticleSubscriptionRepo {
 }
 
 func (a *ArticleSubscriptionRepo) GetArticleSubscriptions(id model.UserId) ([]model.ArticleId, error) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT ArticleId FROM AccountArticleRelations where UserId = %d;", id))
+    rows, err := a.db.Query("SELECT ArticleId FROM AccountArticleRelations where UserId = $1;", id)
     if err != nil {
         panic(err)
     }
@@ -37,7 +36,7 @@ func (a *ArticleSubscriptionRepo) GetArticleSubscriptions(id model.UserId) ([]mo
 }
 
 func (a *ArticleSubscriptionRepo) IsSubscribedForArticle(userId model.UserId, articleId model.ArticleId) (bool, error) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT IsSubscribed FROM AccountArticleRelations WHERE UserId = %s AND ArticleId = '%s';", userId, articleId))
+    rows, err := a.db.Query("SELECT IsSubscribed FROM AccountArticleRelations WHERE UserId = $1 AND ArticleId = $2;", userId, articleId)
     if err != nil {
         panic(err)
     }
@@ -54,7 +53,7 @@ func (a *ArticleSubscriptionRepo) IsSubscribedForArticle(userId model.UserId, ar
 }
 
 func (a *ArticleSubscriptionRepo) CreateRelationIfNotExists(userId model.UserId, articleId model.ArticleId) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT IsSubscribed FROM AccountArticleRelations WHERE UserId = %s AND ArticleId = '%s';", userId, articleId))
+    rows, err := a.db.Query("SELECT IsSubscribed FROM AccountArticleRelations WHERE UserId = $1 AND ArticleId = $2;", userId, articleId)
     if err != nil {
         panic(err)
     }
@@ -105,7 +104,7 @@ func (a *ArticleSubscriptionRepo) ArticleAccessOccurred(id model.UserId, article
 }
 
 func (a *ArticleSubscriptionRepo) GetArticleLastAccessTimestamp(userId model.UserId, articleId model.ArticleId) (uint64, error) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT LastAccess FROM AccountArticleRelations WHERE UserId = %s AND ArticleId = '%s';", userId, articleId))
+    rows, err := a.db.Query("SELECT LastAccess FROM AccountArticleRelations WHERE UserId = $1 AND ArticleId = $2;", userId, articleId)
     if err != nil {
         panic(err)
     }
@@ -122,7 +121,7 @@ func (a *ArticleSubscriptionRepo) GetArticleLastAccessTimestamp(userId model.Use
 }
 
 func (a *ArticleSubscriptionRepo) GetArticleHistory(userId model.UserId) ([]model.ArticleId, error) {
-    rows, err := a.db.Query(fmt.Sprintf("SELECT ArticleId FROM AccountArticleRelations WHERE UserId = %s;", userId))
+    rows, err := a.db.Query("SELECT ArticleId FROM AccountArticleRelations WHERE UserId = $1;", userId)
     if err != nil {
         panic(err)
     }
