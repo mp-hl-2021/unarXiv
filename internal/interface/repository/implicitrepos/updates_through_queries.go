@@ -1,4 +1,4 @@
-package repository
+package implicitrepos
 
 import (
 	"github.com/mp-hl-2021/unarXiv/internal/domain"
@@ -8,14 +8,14 @@ import (
 
 type UpdatesRepoThroughQueries struct {
 	articleRepo     repository.ArticleRepo
-	articleSubsRepo repository.ArticleSubscriptionRepo
-	searchSubsRepo  repository.SearchSubscriptionRepo
+	articleSubsRepo repository.ArticleUserRelationsRepo
+	searchSubsRepo  repository.SearchUserRelationsRepo
 }
 
 func NewUpdatesRepoThroughQueries(
 	articleRepo repository.ArticleRepo,
-	articleSubsRepo repository.ArticleSubscriptionRepo,
-	searchSubsRepo repository.SearchSubscriptionRepo) *UpdatesRepoThroughQueries {
+	articleSubsRepo repository.ArticleUserRelationsRepo,
+	searchSubsRepo repository.SearchUserRelationsRepo) *UpdatesRepoThroughQueries {
 	return &UpdatesRepoThroughQueries{
 		articleRepo:     articleRepo,
 		articleSubsRepo: articleSubsRepo,
