@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/mp-hl-2021/unarXiv/internal/domain"
 	"github.com/mp-hl-2021/unarXiv/internal/domain/model"
 	// "regexp"
@@ -54,72 +55,93 @@ func (a *ArticleRepo) ArticleMetaById(id model.ArticleId) (model.ArticleMeta, er
 }
 
 func (a *ArticleRepo) UpdateArticle(article model.Article) error {
-	_, err := a.ArticleById(article.Id)
+	tx, err := a.db.Begin()
+	defer tx.Rollback()
 	if err != nil {
-		_, err = a.db.Exec("INSERT INTO Articles (Id, Title, Abstract, LastUpdateTimestamp, FullDocumentURL) VALUES ($1, $2, $3, $4, $5);", string(article.ArticleMeta.Id), article.ArticleMeta.Title, article.ArticleMeta.Abstract, article.LastUpdateTimestamp, article.FullDocumentURL.String())
+		return err
+	}
+	_, err = a.ArticleById(article.Id)
+	if err != nil {
+		_, err = tx.Exec("INSERT INTO Articles (Id, Title, Abstract, LastUpdateTimestamp, FullDocumentURL) VALUES ($1, $2, $3, $4, $5);", string(article.ArticleMeta.Id), article.ArticleMeta.Title, article.ArticleMeta.Abstract, article.LastUpdateTimestamp, article.FullDocumentURL.String())
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("INSERT INTO ArticlesFTS (Id, TextData) VALUES ($1, to_tsvector($2))", string(article.ArticleMeta.Id), fmt.Sprint(article))
 		if err != nil {
 			return err
 		}
 	} else {
-		_, err = a.db.Exec("UPDATE Articles SET Title = $1, Abstract = $2, LastUpdateTimestamp = $3, FullDocumentURL = $4 WHERE Id = $5;", article.ArticleMeta.Title, article.ArticleMeta.Abstract, article.LastUpdateTimestamp, article.FullDocumentURL.String(), article.ArticleMeta.Id)
+		_, err = tx.Exec("UPDATE Articles SET Title = $1, Abstract = $2, LastUpdateTimestamp = $3, FullDocumentURL = $4 WHERE Id = $5;", article.ArticleMeta.Title, article.ArticleMeta.Abstract, article.LastUpdateTimestamp, article.FullDocumentURL.String(), article.ArticleMeta.Id)
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("UPDATE ArticlesFTS SET ArticlesFTS.TextData = to_tsvector($1)", fmt.Sprint(article))
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = a.db.Exec("DELETE FROM AuthorsOfArticles WHERE ArticleId = $1;", article.ArticleMeta.Id)
+	_, err = tx.Exec("DELETE FROM AuthorsOfArticles WHERE ArticleId = $1;", article.ArticleMeta.Id)
 	if err != nil {
 		return err
 	}
 
 	for _, authorName := range article.ArticleMeta.Authors {
-		_, err = a.db.Exec("INSERT INTO AuthorsOfArticles (ArticleId, AuthorName) VALUES ($1, $2);", article.ArticleMeta.Id, authorName)
+		_, err = tx.Exec("INSERT INTO AuthorsOfArticles (ArticleId, AuthorName) VALUES ($1, $2);", article.ArticleMeta.Id, authorName)
 		if err != nil {
 			return err
 		}
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
+const searchQueryTotalMatchesCount = `
+SELECT COUNT(*)
+FROM ArticlesFTS
+WHERE TextData @@ plainto_tsquery($1);
+`
+const searchQuery = `
+SELECT ArticlesFTS.Id, ts_rank(TextData, plainto_tsquery($1))
+FROM ArticlesFTS
+WHERE TextData @@ plainto_tsquery($1)
+ORDER BY ts_rank(TextData, plainto_tsquery($1)) DESC
+LIMIT $2 OFFSET $3;
+`
+
 func (a *ArticleRepo) Search(query model.SearchQuery, limit uint32) (model.SearchResult, error) { // TODO
-	return model.SearchResult{}, nil
-	/*
-	   a.mutex.Lock()
-	   defer a.mutex.Unlock()
-	   offset := query.Offset
-	   result := model.SearchResult{
-	       TotalMatchesCount: 0,
-	       Articles:          []model.ArticleMeta{},
-	   }
-
-	   processMatch := func(article model.Article) {
-	       result.TotalMatchesCount++
-	       if result.TotalMatchesCount < offset {
-	           return
-	       }
-
-	       if limit == 0 || result.TotalMatchesCount < limit + offset {
-	           result.Articles = append(result.Articles, article.ArticleMeta)
-	       }
-	   }
-
-	   var re *regexp.Regexp
-	   var err error
-
-	   articleContainsMatch := func(a model.Article, r *regexp.Regexp) bool {
-	       return r.MatchString(a.Title) ||
-	              r.MatchString(a.Abstract) ||
-	              r.MatchString(strings.Join(a.Authors, " "))
-	   }
-
-	   if re, err = regexp.Compile(query.Query); err != nil {
-	       return result, err
-	   }
-	   for _, article := range a.articles {
-	       if articleContainsMatch(article, re) {
-	           processMatch(article)
-	       }
-	   }
-	   return result, nil
-	*/
+	totalMatchesQ := a.db.QueryRow(searchQueryTotalMatchesCount, query.Query)
+	var totalMatches int
+	if err := totalMatchesQ.Scan(&totalMatches); err != nil {
+		return model.SearchResult{}, err
+	}
+	resp := model.SearchResult{
+		TotalMatchesCount: uint32(totalMatches),
+		Articles:          nil,
+	}
+	if limit == 0 {
+		limit = 1e9
+	}
+	rows, err := a.db.Query(searchQuery, query.Query, limit, query.Offset)
+	if err != nil {
+		return resp, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var aid string
+		var rank float64
+		if err := rows.Scan(&aid, &rank); err != nil {
+			return resp, err
+		}
+		article, err := a.ArticleById(model.ArticleId(aid))
+		if err != nil {
+			return resp, err
+		}
+		resp.Articles = append(resp.Articles, article.ArticleMeta)
+	}
+	return resp, nil
 }

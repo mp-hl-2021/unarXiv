@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/mp-hl-2021/unarXiv/internal/domain"
 	"github.com/mp-hl-2021/unarXiv/internal/domain/model"
+	"github.com/mp-hl-2021/unarXiv/internal/interface/utils"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -60,7 +61,9 @@ func (a *SearchSubscriptionRepo) createRelationIfNotExists(userId model.UserId, 
 		relationExists = true
 	}
 	if !relationExists {
-		_, err := a.db.Exec("INSERT INTO AccountSearchRelations (UserId, Search, IsSubscribed, LastAccess) VALUES ($1, $2, false, $3);", userId, query, time.Now())
+		_, err := a.db.Exec(
+			"INSERT INTO AccountSearchRelations (UserId, Search, IsSubscribed, LastAccess) VALUES ($1, $2, false, $3);",
+			userId, query, utils.Uint64Time(time.Now()))
 		if err != nil {
 			return err
 		}
@@ -97,7 +100,9 @@ func (a *SearchSubscriptionRepo) SearchAccessOccurred(id model.UserId, query str
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Exec("UPDATE AccountSearchRelations SET LastAccess = $1 WHERE UserId = $2 AND Search = $3;", time.Now(), id, query)
+	_, err = a.db.Exec(
+		"UPDATE AccountSearchRelations SET LastAccess = $1 WHERE UserId = $2 AND Search = $3;",
+		utils.Uint64Time(time.Now()), id, query)
 	return err
 }
 

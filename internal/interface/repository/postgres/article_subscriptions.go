@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/mp-hl-2021/unarXiv/internal/domain"
 	"github.com/mp-hl-2021/unarXiv/internal/domain/model"
+	"github.com/mp-hl-2021/unarXiv/internal/interface/utils"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -60,7 +61,9 @@ func (a *ArticleSubscriptionRepo) createRelationIfNotExists(userId model.UserId,
 		relationExists = true
 	}
 	if !relationExists {
-		_, err := a.db.Exec("INSERT INTO AccountArticleRelations (UserId, ArticleId, IsSubscribed, LastAccess) VALUES ($1, $2, false, $3);", userId, articleId, time.Now())
+		_, err := a.db.Exec(
+			"INSERT INTO AccountArticleRelations (UserId, ArticleId, IsSubscribed, LastAccess) VALUES ($1, $2, false, $3);",
+			userId, articleId, utils.Uint64Time(time.Now()))
 		if err != nil {
 			return err
 		}
@@ -98,8 +101,13 @@ func (a *ArticleSubscriptionRepo) UnsubscribeFromArticle(id model.UserId, articl
 }
 
 func (a *ArticleSubscriptionRepo) ArticleAccessOccurred(id model.UserId, articleId model.ArticleId) error {
-	a.createRelationIfNotExists(id, articleId)
-	_, err := a.db.Exec("UPDATE AccountArticleRelations SET LastAccess = $1 WHERE UserId = $2 AND ArticleID = $3;", time.Now(), id, articleId)
+	err := a.createRelationIfNotExists(id, articleId)
+	if err != nil {
+		return err
+	}
+	_, err = a.db.Exec(
+		"UPDATE AccountArticleRelations SET LastAccess = $1 WHERE UserId = $2 AND ArticleID = $3;",
+		utils.Uint64Time(time.Now()), id, articleId)
 	return err
 }
 

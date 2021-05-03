@@ -1,6 +1,0 @@
-{
-    "CrawlDomain": "arxiv.org",
-    "CrawlStart": "https://arxiv.org/covid19search",
-    "LocalStoragePath": "data.txt",
-    "NeedArticles": 10
-}

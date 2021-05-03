@@ -1,0 +1,48 @@
+version: '3.1'
+services:
+  httpapi:
+    build:
+      context: .
+      dockerfile: cmd/httpapi/Dockerfile
+    environment:
+      dbusername: unarxivuser
+      dbname: unarxiv
+    depends_on:
+      - db
+    restart: always
+    ports:
+      - 8080:8080
+    volumes:
+      - .secrets/app.rsa:/app.rsa
+      - .secrets/app.rsa.pub:/app.rsa.pub
+    networks:
+      - unarxiv-net
+
+  crawler:
+    build:
+      context: .
+      dockerfile: cmd/crawler/Dockerfile
+    environment:
+      dbusername: unarxivuser
+      dbname: unarxiv
+    depends_on:
+      - db
+    restart: always
+    networks:
+      - unarxiv-net
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: unarxivuser
+      POSTGRES_PASSWORD: 1234567890
+      POSTGRES_DB: unarxiv
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+    networks:
+      - unarxiv-net
+
+networks:
+  unarxiv-net:
+    driver: bridge
