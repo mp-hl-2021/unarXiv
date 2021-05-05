@@ -39,11 +39,10 @@ CREATE TABLE IF NOT EXISTS AccountSearchRelations (
 );
 
 CREATE TABLE IF NOT EXISTS CrawlerConfig (
-    Id integer primary key,
-    DesiredArticleCount integer,
-    RootURL text
+    RootURL text primary key,
+    DesiredArticleCount integer
 );
-INSERT INTO CrawlerConfig VALUES (0, 50, 'https://arxiv.org/') ON CONFLICT DO NOTHING;
+INSERT INTO CrawlerConfig VALUES ('https://arxiv.org/', 50) ON CONFLICT DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS CrawlStatus (
     URL text not null primary key,

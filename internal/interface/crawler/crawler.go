@@ -34,20 +34,19 @@ func NewCrawler(db *sql.DB, articlesRepo repository.ArticleRepo) *Crawler {
 }
 
 type Configuration struct {
-	Id                  int
-	DesiredArticleCount int
 	RootURL             string
+	DesiredArticleCount int
 }
 
 func (c *Crawler) GetConfiguration() (Configuration, error) {
-	rows, err := c.db.Query("SELECT * FROM CrawlerConfig;")
+	rows, err := c.db.Query("SELECT RootURL, DesiredArticleCount FROM CrawlerConfig;")
 	if err != nil {
 		return Configuration{}, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		cfg := Configuration{}
-		err := rows.Scan(&cfg.Id, &cfg.DesiredArticleCount, &cfg.RootURL)
+		err := rows.Scan(&cfg.RootURL, &cfg.DesiredArticleCount)
 		return cfg, err
 	}
 	return Configuration{}, ErrNoConfigs
