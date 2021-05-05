@@ -25,14 +25,14 @@ func NewUsecases(
 	auth AuthInterface,
 	articleRepo repository.ArticleRepo,
 	updatesRepo repository.UpdatesRepo,
-	articleSubscriptionRepo repository.ArticleUserRelationsRepo,
-	searchSubscriptionRepo repository.SearchUserRelationsRepo) *usecasesThroughRepos {
+	articleUserRelationsRepo repository.ArticleUserRelationsRepo,
+	searchUserRelationsRepo repository.SearchUserRelationsRepo) *usecasesThroughRepos {
 	return &usecasesThroughRepos{
 		auth:                     auth,
 		articleRepo:              articleRepo,
 		updatesRepo:              updatesRepo,
-		articleUserRelationsRepo: articleSubscriptionRepo,
-		searchUserRelationsRepo:  searchSubscriptionRepo,
+		articleUserRelationsRepo: articleUserRelationsRepo,
+		searchUserRelationsRepo:  searchUserRelationsRepo,
 	}
 }
 
