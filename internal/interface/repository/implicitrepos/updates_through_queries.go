@@ -37,9 +37,14 @@ func (u *UpdatesRepoThroughQueries) GetArticleSubscriptionsUpdates(id model.User
 			return nil, err
 		}
 		lastAccessTimestamp, err := u.articleUserRelationsRepo.GetArticleLastAccessTimestamp(id, articleId)
-		if err != nil && err != domain.NeverAccessed {
+		if err == domain.NeverAccessed {
+			result = append(result, articleMeta)
+			continue
+		}
+		if err != nil {
 			return nil, err
-		} else if lastAccessTimestamp < articleMeta.LastUpdateTimestamp || err == domain.NeverAccessed {
+		}
+		if lastAccessTimestamp < articleMeta.LastUpdateTimestamp {
 			result = append(result, articleMeta)
 		}
 	}
@@ -82,9 +87,14 @@ func (u *UpdatesRepoThroughQueries) GetSearchSubscriptionsUpdates(id model.UserI
 			}
 		}
 		lastAccessTimestamp, err := u.searchUserRelationsRepo.GetSearchLastAccessTimestamp(id, query)
-		if err != nil && err != domain.NeverAccessed {
+		if err == domain.NeverAccessed {
+			result = append(result, query)
+			continue
+		}
+		if err != nil {
 			return nil, err
-		} else if lastAccessTimestamp < lastArticleUpdateTimestamp || err == domain.NeverAccessed {
+		}
+		if lastAccessTimestamp < lastArticleUpdateTimestamp {
 			result = append(result, query)
 		}
 	}
