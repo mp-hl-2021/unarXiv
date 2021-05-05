@@ -53,7 +53,7 @@ func (c *Crawler) GetConfiguration() (Configuration, error) {
 }
 
 func (c *Crawler) getArticlesCount() (int, error) {
-	rows, err := c.db.Query("SELECT COUNT(*) FROM Articles;")
+	rows, err := c.db.Query("SELECT n_live_tup FROM pg_stat_all_tables WHERE relname = 'articles';")
 	if err != nil {
 		return 0, err
 	}
