@@ -115,54 +115,21 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 
 func (c *Crawler) responseProcessor(parseErr *error, urlQueue *[]string, cfg *Configuration) func(response *colly.Response) {
 	return func(response *colly.Response) {
-		originalUrl := response.Request.URL.String()
 		dom, err := goquery.NewDocumentFromReader(bytes.NewReader(response.Body))
 		if err != nil {
 			parseErr = &err
 			return
 		}
-		dom.Find("a[href]").Each(func(i int, s *goquery.Selection) {
-			suburl, exists := s.Attr("href")
-			if !exists {
-				parseErr = &ErrExpectedHref
+		err = c.collectUrls(dom, urlQueue, cfg)
+		if err != nil {
+			parseErr = &err
+			return
+		}
+		if strings.Contains(response.Request.URL.String(), "abs/") {
+			article, err := c.parseArticle(response, dom)
+			if err != nil {
+				parseErr = &err
 				return
-			}
-			if len(*urlQueue) < kURLBacklogSize && strings.Contains(suburl, cfg.RootURL) {
-				*urlQueue = append(*urlQueue, suburl)
-			}
-		})
-		if strings.Contains(originalUrl, "abs/") {
-			spl := strings.Split(originalUrl, "abs/")
-			absId := spl[len(spl)-1]
-			if len(absId) < 3 {
-				parseErr = &ErrTooShortAbsId
-				return
-			}
-			getElemText := func(class string) string {
-				sel := fmt.Sprintf("[class=\"%s\"]", class)
-				return strings.Trim(strings.Replace(dom.Find(sel).Text(), "\n", " ", -1), " \t")
-			}
-			title := getElemText("title mathjax")
-			if len(title) == 0 {
-				parseErr = &ErrEmptyTitle
-				return
-			}
-			authorsRaw := getElemText("authors")
-			if len(authorsRaw) == 0 {
-				parseErr = &ErrEmptyAuthors
-				return
-			}
-			authors := strings.Split(authorsRaw, ", ")
-			abstract := getElemText("abstract mathjax")
-			article := model.Article{
-				ArticleMeta: model.ArticleMeta{
-					Id:                  model.ArticleId(absId),
-					Title:               title,
-					Authors:             authors,
-					Abstract:            abstract,
-					LastUpdateTimestamp: utils.Uint64Time(time.Now()),
-				},
-				FullDocumentURL: *response.Request.URL,
 			}
 			up, err := c.upsertArticle(article)
 			if err != nil {
@@ -170,8 +137,69 @@ func (c *Crawler) responseProcessor(parseErr *error, urlQueue *[]string, cfg *Co
 				return
 			}
 			if up {
-				fmt.Println("Upserted article", absId)
+				fmt.Println("Upserted article", article.Id)
 			}
 		}
 	}
+}
+
+func (c *Crawler) parseArticle(response *colly.Response, dom *goquery.Document) (model.Article, error) {
+	originalUrl := response.Request.URL.String()
+	absId, err := c.extractArticleId(originalUrl)
+	if err != nil {
+		return model.Article{}, err
+	}
+	title := c.getElemTextByClass(dom, "title mathjax")
+	if len(title) == 0 {
+		return model.Article{}, ErrEmptyTitle
+	}
+	authorsRaw := c.getElemTextByClass(dom, "authors")
+	if len(authorsRaw) == 0 {
+		return model.Article{}, ErrEmptyAuthors
+	}
+	authors := strings.Split(authorsRaw, ", ")
+	abstract := c.getElemTextByClass(dom, "abstract mathjax")
+	article := model.Article{
+		ArticleMeta: model.ArticleMeta{
+			Id:                  model.ArticleId(absId),
+			Title:               title,
+			Authors:             authors,
+			Abstract:            abstract,
+			LastUpdateTimestamp: utils.Uint64Time(time.Now()),
+		},
+		FullDocumentURL: *response.Request.URL,
+	}
+	return article, nil
+}
+
+func (c *Crawler) getElemTextByClass(dom *goquery.Document, class string) string {
+	sel := fmt.Sprintf("[class=\"%s\"]", class)
+	return strings.Trim(strings.Replace(dom.Find(sel).Text(), "\n", " ", -1), " \t")
+}
+
+func (c *Crawler) extractArticleId(originalUrl string) (string, error) {
+	spl := strings.Split(originalUrl, "abs/")
+	absId := spl[len(spl)-1]
+	if len(absId) < 3 {
+		return "", ErrTooShortAbsId
+	}
+	return absId, nil
+}
+
+func (c *Crawler) collectUrls(dom *goquery.Document, urlQueue *[]string, cfg *Configuration) error {
+	var err error
+	dom.Find("a[href]").Each(func(i int, s *goquery.Selection) {
+		if err != nil {
+			return
+		}
+		suburl, exists := s.Attr("href")
+		if !exists {
+			err = ErrExpectedHref
+			return
+		}
+		if len(*urlQueue) < kURLBacklogSize && strings.Contains(suburl, cfg.RootURL) {
+			*urlQueue = append(*urlQueue, suburl)
+		}
+	})
+	return err
 }
