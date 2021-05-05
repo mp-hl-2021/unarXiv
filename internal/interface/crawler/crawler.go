@@ -67,21 +67,14 @@ func (c *Crawler) getArticlesCount() (int, error) {
 }
 
 func (c *Crawler) upsertArticle(article model.Article) (bool, error) {
-	prevArt, err := c.articlesRepo.ArticleById(article.Id)
+	prevArticleState, err := c.articlesRepo.ArticleById(article.Id)
 	if err == domain.ArticleNotFound {
 		return true, c.articlesRepo.UpdateArticle(article)
-	} else if err != nil {
+	}
+	if err != nil {
 		return false, err
 	}
-	differs := prevArt.Title != article.Title ||
-		prevArt.Abstract != article.Abstract ||
-		len(prevArt.Authors) != len(article.Authors)
-	if !differs {
-		for i := range prevArt.Authors {
-			differs = differs || prevArt.Authors[i] != article.Authors[i]
-		}
-	}
-	if differs {
+	if !article.Equals(prevArticleState) {
 		return true, c.articlesRepo.UpdateArticle(article)
 	}
 	return false, nil
