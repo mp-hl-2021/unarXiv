@@ -1,4 +1,4 @@
-package repository
+package implicitrepos
 
 import (
 	"github.com/mp-hl-2021/unarXiv/internal/domain"
@@ -7,27 +7,24 @@ import (
 )
 
 type UpdatesRepoThroughQueries struct {
-	articleRepo     repository.ArticleRepo
-	articleSubsRepo repository.ArticleSubscriptionRepo
-	searchSubsRepo  repository.SearchSubscriptionRepo
-	historyRepo     repository.HistoryRepo
+	articleRepo              repository.ArticleRepo
+	articleUserRelationsRepo repository.ArticleUserRelationsRepo
+	searchUserRelationsRepo  repository.SearchUserRelationsRepo
 }
 
 func NewUpdatesRepoThroughQueries(
 	articleRepo repository.ArticleRepo,
-	articleSubsRepo repository.ArticleSubscriptionRepo,
-	searchSubsRepo repository.SearchSubscriptionRepo,
-	historyRepo repository.HistoryRepo) *UpdatesRepoThroughQueries {
+	articleUserRelationsRepo repository.ArticleUserRelationsRepo,
+	searchUserRelationsRepo repository.SearchUserRelationsRepo) *UpdatesRepoThroughQueries {
 	return &UpdatesRepoThroughQueries{
-		articleRepo:     articleRepo,
-		articleSubsRepo: articleSubsRepo,
-		searchSubsRepo:  searchSubsRepo,
-		historyRepo:     historyRepo,
+		articleRepo:              articleRepo,
+		articleUserRelationsRepo: articleUserRelationsRepo,
+		searchUserRelationsRepo:  searchUserRelationsRepo,
 	}
 }
 
 func (u *UpdatesRepoThroughQueries) GetArticleSubscriptionsUpdates(id model.UserId) ([]model.ArticleMeta, error) {
-	subs, err := u.articleSubsRepo.GetArticleSubscriptions(id)
+	subs, err := u.articleUserRelationsRepo.GetArticleSubscriptions(id)
 	if err != nil {
 		return nil, err
 	}
@@ -39,10 +36,15 @@ func (u *UpdatesRepoThroughQueries) GetArticleSubscriptionsUpdates(id model.User
 		} else if err != nil {
 			return nil, err
 		}
-		lastAccessTimestamp, err := u.historyRepo.GetArticleLastAccessTimestamp(id, articleId)
-		if err != nil && err != domain.NeverAccessed {
+		lastAccessTimestamp, err := u.articleUserRelationsRepo.GetArticleLastAccessTimestamp(id, articleId)
+		if err == domain.NeverAccessed {
+			result = append(result, articleMeta)
+			continue
+		}
+		if err != nil {
 			return nil, err
-		} else if lastAccessTimestamp < articleMeta.LastUpdateTimestamp || err == domain.NeverAccessed {
+		}
+		if lastAccessTimestamp < articleMeta.LastUpdateTimestamp {
 			result = append(result, articleMeta)
 		}
 	}
@@ -65,7 +67,7 @@ func (u *UpdatesRepoThroughQueries) GetArticleSubscriptionsUpdates(id model.User
 - А чего вы ожидали? Сорок шесть тонн!
 */
 func (u *UpdatesRepoThroughQueries) GetSearchSubscriptionsUpdates(id model.UserId) ([]string, error) {
-	subs, err := u.searchSubsRepo.GetSearchSubscriptions(id)
+	subs, err := u.searchUserRelationsRepo.GetSearchSubscriptions(id)
 	if err != nil {
 		return nil, err
 	}
@@ -84,10 +86,15 @@ func (u *UpdatesRepoThroughQueries) GetSearchSubscriptionsUpdates(id model.UserI
 				lastArticleUpdateTimestamp = articleMeta.LastUpdateTimestamp
 			}
 		}
-		lastAccessTimestamp, err := u.historyRepo.GetSearchLastAccessTimestamp(id, query)
-		if err != nil && err != domain.NeverAccessed {
+		lastAccessTimestamp, err := u.searchUserRelationsRepo.GetSearchLastAccessTimestamp(id, query)
+		if err == domain.NeverAccessed {
+			result = append(result, query)
+			continue
+		}
+		if err != nil {
 			return nil, err
-		} else if lastAccessTimestamp < lastArticleUpdateTimestamp || err == domain.NeverAccessed {
+		}
+		if lastAccessTimestamp < lastArticleUpdateTimestamp {
 			result = append(result, query)
 		}
 	}

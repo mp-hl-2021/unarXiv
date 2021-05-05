@@ -7,7 +7,8 @@ require (
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/gocolly/colly/v2 v2.1.0
 	github.com/gorilla/mux v1.8.0
-	github.com/tkanos/gonfig v0.0.0-20210106201359-53e13348de2f
+	github.com/lib/pq v1.10.0 // indirect
+	github.com/PuerkitoBio/goquery v1.5.1
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
 	//"github.com/dgrijalva/jwt-go"
 )
 
@@ -29,7 +28,7 @@ type contextKey string
 
 const (
 	contextKeyUserId = contextKey("userId")
-	bearer = "Bearer"
+	bearer           = "Bearer"
 )
 
 func (a *HttpApi) Router() http.Handler {
@@ -97,7 +96,6 @@ func userIdPtrFromRequest(r *http.Request) *model.UserId {
 	}
 	return &userId
 }
-
 
 // postRegister handles request for a new account creation.
 func (a *HttpApi) postRegister(w http.ResponseWriter, r *http.Request) {
