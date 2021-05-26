@@ -69,15 +69,25 @@ func (c *Crawler) getArticlesCount() (int, error) {
 func (c *Crawler) upsertArticle(article model.Article) (bool, error) {
 	prevArticleState, err := c.articlesRepo.ArticleById(article.Id)
 	if err == domain.ArticleNotFound {
-		return true, c.articlesRepo.UpdateArticle(article)
+		err = c.articlesRepo.UpdateArticle(article)
+		if err != nil {
+			return false, err
+		}
+		totalArticlesUpdated.WithLabelValues("1").Inc()
+		return true, nil
 	}
 	if err != nil {
 		return false, err
 	}
-	if !article.Equals(prevArticleState) {
-		return true, c.articlesRepo.UpdateArticle(article)
+	if article.Equals(prevArticleState) {
+		return false, nil
 	}
-	return false, nil
+	err = c.articlesRepo.UpdateArticle(article)
+	if err != nil {
+		return false, err
+	}
+	totalArticlesUpdated.WithLabelValues("0").Inc()
+	return true, err
 }
 
 func (c *Crawler) CrawlArticles(cfg Configuration) error {
@@ -103,8 +113,11 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	articlesCnt, err := c.getArticlesCount()
 	for err == nil && articlesCnt < cfg.DesiredArticleCount && len(urlQueue) > 0 && parseErr == nil {
 		u := urlQueue[0]
+		totalURLsVisited.Inc()
 		urlQueue = urlQueue[1:]
+		timeStart := time.Now()
 		collector.Visit(u)
+		urlVisitDuration.Observe(time.Now().Sub(timeStart).Seconds())
 		articlesCnt, err = c.getArticlesCount()
 	}
 	if err != nil {

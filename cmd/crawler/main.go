@@ -22,6 +22,7 @@ func main() {
 	articleRepo := postgres.NewArticleRepo(db)
 
 	c := crawler.NewCrawler(db, articleRepo)
+	go c.RunMetricsServer()
 
 	for {
 		cfg, err := c.GetConfiguration()

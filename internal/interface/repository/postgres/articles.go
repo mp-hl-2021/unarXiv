@@ -75,7 +75,7 @@ func (a *ArticleRepo) UpdateArticle(article model.Article) error {
 		if err != nil {
 			return err
 		}
-		_, err = tx.Exec("UPDATE ArticlesFTS SET ArticlesFTS.TextData = to_tsvector($1)", fmt.Sprint(article))
+		_, err = tx.Exec("UPDATE ArticlesFTS SET TextData = to_tsvector($1)", fmt.Sprint(article))
 		if err != nil {
 			return err
 		}
@@ -106,7 +106,7 @@ FROM ArticlesFTS
 WHERE TextData @@ plainto_tsquery($1);
 `
 const searchQuery = `
-SELECT ArticlesFTS.Id, ts_rank(TextData, plainto_tsquery($1))
+SELECT Id, ts_rank(TextData, plainto_tsquery($1))
 FROM ArticlesFTS
 WHERE TextData @@ plainto_tsquery($1)
 ORDER BY ts_rank(TextData, plainto_tsquery($1)) DESC
