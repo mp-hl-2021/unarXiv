@@ -2,10 +2,14 @@ package crawler
 
 import (
 	"bytes"
+    "context"
 	"database/sql"
 	"fmt"
     "io"
+    "os"
+    "os/signal"
     "net/http"
+    "sync"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/mp-hl-2021/unarXiv/internal/domain"
 	"github.com/mp-hl-2021/unarXiv/internal/domain/model"
@@ -23,8 +27,16 @@ var (
 	ErrTooShortAbsId = fmt.Errorf("too short absId")
 	ErrEmptyTitle    = fmt.Errorf("parsed empty title")
 	ErrEmptyAuthors  = fmt.Errorf("parsed empty authors")
-	ErrEmptyQueue  = fmt.Errorf("no more urls to crawl")
+	ErrEmptyQueue    = fmt.Errorf("no more urls to crawl")
+
+    chBuff                 = 10
+    getURLConcurrency      = 1
+    downloadURLConcurrency = 2
+    parseHTMLConcurrency   = 2
+    putArticleLConcurrency = 1
+    putURLConcurrency      = 1
 )
+
 
 type Crawler struct {
 	db           *sql.DB
@@ -97,79 +109,104 @@ func (c *Crawler) getArticlesCount() (int, error) {
 	return 0, fmt.Errorf("unexpected query result")
 }
 
-func (c *Crawler) GetURLFromDB(URLChan chan<- string) error {
+func (c *Crawler) GetURLFromDB(ctx context.Context, URLChan chan<- string) error {
     for {
-        url, err := c.GetUnvisitedURL()
-        if err == ErrEmptyQueue {
-            time.Sleep(time.Second)
-            continue
-        } else if err != nil {
-            return nil
+        select {
+        case <-ctx.Done():
+            return ctx.Err()
+        default:
+            url, err := c.GetUnvisitedURL()
+            if err == ErrEmptyQueue {
+                time.Sleep(time.Second)
+            } else if err != nil {
+                return err
+            } else {
+                totalURLsVisited.Inc()
+                c.DBVisitURL(url)
+                URLChan <- url
+            }
         }
-        totalURLsVisited.Inc()
-        c.DBVisitURL(url)
-        URLChan <- url
     }
 }
 
-func (c *Crawler) DownloadURL(URLChan <-chan string, HTMLChan chan<- *http.Response) error {
+func (c *Crawler) DownloadURL(ctx context.Context, URLChan <-chan string, HTMLChan chan<- *http.Response) error {
     for {
-        url := <-URLChan
-        fmt.Println("Visiting", url)
-        response, err := http.Get(url)
-        if err != nil {
-            return err
-        }
-        err = c.DBUpdateURLInfo(url, response.StatusCode)
-        if err != nil {
-            return err
-        }
-        HTMLChan <- response
-    }
-}
-
-func (c *Crawler) ParseHTML(cfg *Configuration, HTMLChan <-chan *http.Response, ArticleChan chan<- model.Article, NewURLChan chan<- string) error {
-    for {
-        response := <-HTMLChan
-        body, err := io.ReadAll(response.Body)
-        dom, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-        if err != nil {
-            return err
-        }
-        err = c.collectUrls(dom, cfg, NewURLChan)
-        if err != nil {
-            return err
-        }
-        if strings.Contains(response.Request.URL.String(), "/abs/") {
-            article, err := c.parseArticle(response, dom)
+        select {
+        case <-ctx.Done():
+            return ctx.Err()
+        case url := <-URLChan:
+            fmt.Println("Visiting", url)
+            response, err := http.Get(url)
             if err != nil {
                 return err
             }
-            ArticleChan <- article
-        }
-        response.Body.Close()
-    }
-}
-
-func (c *Crawler) PutURLToDB(NewURLChan <-chan string) error {
-    for {
-        url := <-NewURLChan
-        err := c.AddURLToQueue(url)
-        if err != nil {
-            return err
+            err = c.DBUpdateURLInfo(url, response.StatusCode)
+            if err != nil {
+                return err
+            }
+            HTMLChan <- response
+            time.Sleep(time.Second)
         }
     }
 }
 
-func (c *Crawler) PutArticleToDB(ArticleChan <-chan model.Article) error {
+func (c *Crawler) ParseHTML(ctx context.Context, cfg *Configuration, HTMLChan <-chan *http.Response, ArticleChan chan<- model.Article, NewURLChan chan<- string) error {
     for {
-        article := <-ArticleChan
-        up, err := c.upsertArticle(article)
-        if err != nil {
-            return err
+        select {
+        case <-ctx.Done():
+            return ctx.Err()
+        case response := <-HTMLChan:
+            body, err := io.ReadAll(response.Body)
+            if err != nil {
+                return err
+            }
+            dom, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
+            if err != nil {
+                return err
+            }
+            err = c.collectUrls(dom, cfg, NewURLChan)
+            if err != nil {
+                return err
+            }
+            if strings.Contains(response.Request.URL.String(), "/abs/") {
+                article, err := c.parseArticle(response, dom)
+                if err != nil {
+                    return err
+                }
+                ArticleChan <- article
+            }
+            response.Body.Close()
         }
-        if up {
-            fmt.Println("Upserted article", article.Id)
+    }
+}
+
+func (c *Crawler) PutURLToDB(ctx context.Context, NewURLChan <-chan string) error {
+    for {
+        select {
+        case <-ctx.Done():
+            return ctx.Err()
+        case url := <-NewURLChan:
+            err := c.AddURLToQueue(url)
+            if err != nil {
+                return err
+            }
+        }
+    }
+}
+
+func (c *Crawler) PutArticleToDB(ctx context.Context, ArticleChan <-chan model.Article) error {
+    for {
+        select {
+        case <-ctx.Done():
+            return ctx.Err()
+        case article := <-ArticleChan:
+            up, err := c.upsertArticle(article)
+            if err != nil {
+                return err
+            }
+            if up {
+                fmt.Println("Upserted article", article.Id)
+            }
         }
     }
 }
@@ -201,83 +238,93 @@ func (c *Crawler) upsertArticle(article model.Article) (bool, error) {
 func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	fmt.Println("Crawling...")
 
-    URLChan := make(chan string, 10)
-    HTMLChan := make(chan *http.Response, 10)
-    ArticleChan := make(chan model.Article, 10)
-    NewURLChan := make(chan string, 10)
+    ctx, cancel := context.WithCancel(context.Background())
+    osChan := make(chan os.Signal, 1)
+    signal.Notify(osChan, os.Interrupt)
+    defer func() {
+        signal.Stop(osChan)
+        cancel()
+    }()
 
-    go c.GetURLFromDB(URLChan)
-    go c.DownloadURL(URLChan, HTMLChan)
-    go c.ParseHTML(&cfg, HTMLChan, ArticleChan, NewURLChan)
-    go c.PutURLToDB(NewURLChan)
-    c.PutArticleToDB(ArticleChan)
-    return nil
+    URLChan := make(chan string, chBuff)
+    HTMLChan := make(chan *http.Response, chBuff)
+    ArticleChan := make(chan model.Article, chBuff)
+    NewURLChan := make(chan string, chBuff)
+
+    go func() {
+        for {
+            select {
+            case <-osChan:
+                cancel()
+            case <-ctx.Done():
+                return
+            }
+        }
+    }()
+
+    var gwg sync.WaitGroup
+    gwg.Add(getURLConcurrency)
+    for i := 0; i < getURLConcurrency; i++ {
+        go func(out chan<- string) {
+            err := c.GetURLFromDB(ctx, out)
+            fmt.Fprintf(os.Stderr, "URLGetter %d stoped, reason: %s\n", i, err)
+            gwg.Done()
+            cancel()
+        }(URLChan)
+    }
+
+    var dwg sync.WaitGroup
+    dwg.Add(downloadURLConcurrency)
+    for i := 0; i < downloadURLConcurrency; i++ {
+        go func(in <-chan string, out chan<- *http.Response) {
+            err := c.DownloadURL(ctx, in, out)
+            fmt.Fprintf(os.Stderr, "URLDownloader %d stoped, reason: %s\n", i, err)
+            dwg.Done()
+            cancel()
+        }(URLChan, HTMLChan)
+    }
+
+    var parseWG sync.WaitGroup
+    parseWG.Add(parseHTMLConcurrency)
+    for i := 0; i < parseHTMLConcurrency; i++ {
+        go func(in <-chan *http.Response, outArticle chan<- model.Article, outURL chan<- string) {
+            err := c.ParseHTML(ctx, &cfg, in, outArticle, outURL)
+            fmt.Fprintf(os.Stderr, "HTMLParser %d stoped, reason: %s\n", i, err)
+            parseWG.Done()
+            cancel()
+        }(HTMLChan, ArticleChan, NewURLChan)
+    }
+
+    var putUrlWG sync.WaitGroup
+    putUrlWG.Add(putURLConcurrency)
+    for i := 0; i < putURLConcurrency; i++ {
+        go func(in <-chan string) {
+            err := c.PutURLToDB(ctx, in)
+            fmt.Fprintf(os.Stderr, "URLPuter %d stoped, reason: %s\n", i, err)
+            putUrlWG.Done()
+            cancel()
+        }(NewURLChan)
+    }
+
+    var putArticleWG sync.WaitGroup
+    putArticleWG.Add(putArticleLConcurrency)
+    for i := 0; i < putArticleLConcurrency; i++ {
+        go func(in <-chan model.Article) {
+            err := c.PutArticleToDB(ctx, in)
+            fmt.Fprintf(os.Stderr, "ArticlePuter %d stoped, reason: %s\n", i, err)
+            putArticleWG.Done()
+            cancel()
+        }(ArticleChan)
+    }
+
+    gwg.Wait()
+    dwg.Wait()
+    parseWG.Wait()
+    putUrlWG.Wait()
+    putArticleWG.Wait()
+
+    return ctx.Err()
 }
-
-/*func (c *Crawler) CrawlArticles2(cfg Configuration) error {
-	fmt.Println("Crawling...")
-
-	var parseErr error
-
-	articlesCnt, err := c.getArticlesCount()
-	for err == nil && articlesCnt < cfg.DesiredArticleCount && parseErr == nil {
-        u, err := c.GetUnvisitedURL()
-        if err != nil {
-            return err
-        }
-		totalURLsVisited.Inc()
-		timeStart := time.Now()
-        c.VisitPage(&parseErr, &cfg, u)
-		urlVisitDuration.Observe(time.Now().Sub(timeStart).Seconds())
-		articlesCnt, err = c.getArticlesCount()
-	}
-	if err != nil {
-		return err
-	}
-	return parseErr
-}*/
-
-/*
-func (c *Crawler) VisitPage(parseErr *error, cfg *Configuration, url string) {
-    fmt.Println("Visiting", url)
-    response, err := http.Get(url)
-    if err != nil {
-        parseErr = &err
-        return
-    }
-    defer response.Body.Close()
-    err = c.DBUpdateURLInfo(url, response.StatusCode)
-    if err != nil {
-        parseErr = &err
-        return
-    }
-    body, err := io.ReadAll(response.Body)
-    dom, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-    if err != nil {
-        parseErr = &err
-        return
-    }
-    err = c.collectUrls(dom, cfg)
-    if err != nil {
-        parseErr = &err
-        return
-    }
-    if strings.Contains(response.Request.URL.String(), "/abs/") {
-        article, err := c.parseArticle(response, dom)
-        if err != nil {
-            parseErr = &err
-            return
-        }
-        up, err := c.upsertArticle(article)
-        if err != nil {
-            parseErr = &err
-            return
-        }
-        if up {
-            fmt.Println("Upserted article", article.Id)
-        }
-    }
-}*/
 
 func (c *Crawler) parseArticle(response *http.Response, dom *goquery.Document) (model.Article, error) {
 	originalUrl := response.Request.URL.String()
