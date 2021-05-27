@@ -23,6 +23,7 @@ var (
 	ErrTooShortAbsId = fmt.Errorf("too short absId")
 	ErrEmptyTitle    = fmt.Errorf("parsed empty title")
 	ErrEmptyAuthors  = fmt.Errorf("parsed empty authors")
+	ErrEmptyQueue  = fmt.Errorf("no more urls to crawl")
 )
 
 type Crawler struct {
@@ -37,6 +38,30 @@ func NewCrawler(db *sql.DB, articlesRepo repository.ArticleRepo) *Crawler {
 type Configuration struct {
 	RootURL             string
 	DesiredArticleCount int
+}
+
+func (c *Crawler) GetUnvisitedURL() (string, error) {
+    rows, err := c.db.Query("SELECT URL FROM CrawlStatus WHERE LastAccess IS NULL LIMIT 1;")
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		url := ""
+		err := rows.Scan(&url)
+		return url, err
+	}
+    return "", ErrEmptyQueue
+}
+
+func (c *Crawler) AddURLToQueue(url string) error {
+    _, err := c.db.Exec("INSERT INTO CrawlStatus (URL) VALUES ($1) ON CONFLICT DO NOTHING;", url)
+    return err
+}
+
+func (c *Crawler) DBVisitURL(url string, HTTPStatus int) error {
+    _, err := c.db.Exec("UPDATE CrawlStatus SET LastAccess = $1, LastHTTPStatus = $2 where URL = $3;", utils.Uint64Time(time.Now()), HTTPStatus, url)
+    return err
 }
 
 func (c *Crawler) GetConfiguration() (Configuration, error) {
@@ -94,16 +119,17 @@ func (c *Crawler) upsertArticle(article model.Article) (bool, error) {
 func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	fmt.Println("Crawling...")
 
-	urlQueue := []string{cfg.RootURL}
 	var parseErr error
 
 	articlesCnt, err := c.getArticlesCount()
-	for err == nil && articlesCnt < cfg.DesiredArticleCount && len(urlQueue) > 0 && parseErr == nil {
-		u := urlQueue[0]
+	for err == nil && articlesCnt < cfg.DesiredArticleCount && parseErr == nil {
+        u, err := c.GetUnvisitedURL()
+        if err != nil {
+            return err
+        }
 		totalURLsVisited.Inc()
-		urlQueue = urlQueue[1:]
 		timeStart := time.Now()
-        c.visitPage(&parseErr, &urlQueue, &cfg, u)
+        c.VisitPage(&parseErr, &cfg, u)
 		urlVisitDuration.Observe(time.Now().Sub(timeStart).Seconds())
 		articlesCnt, err = c.getArticlesCount()
 	}
@@ -113,26 +139,31 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	return parseErr
 }
 
-func (c *Crawler) visitPage(parseErr *error, urlQueue *[]string, cfg *Configuration, url string) {
+func (c *Crawler) VisitPage(parseErr *error, cfg *Configuration, url string) {
     fmt.Println("Visiting", url)
     response, err := http.Get(url)
     if err != nil {
         parseErr = &err
         return
     }
-    body, err := io.ReadAll(response.Body)
     defer response.Body.Close()
+    err = c.DBVisitURL(url, response.StatusCode)
+    if err != nil {
+        parseErr = &err
+        return
+    }
+    body, err := io.ReadAll(response.Body)
     dom, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
     if err != nil {
         parseErr = &err
         return
     }
-    err = c.collectUrls(dom, urlQueue, cfg)
+    err = c.collectUrls(dom, cfg)
     if err != nil {
         parseErr = &err
         return
     }
-    if strings.Contains(response.Request.URL.String(), "abs/") {
+    if strings.Contains(response.Request.URL.String(), "/abs/") {
         article, err := c.parseArticle(response, dom)
         if err != nil {
             parseErr = &err
@@ -192,7 +223,7 @@ func (c *Crawler) extractArticleId(originalUrl string) (string, error) {
 	return absId, nil
 }
 
-func (c *Crawler) collectUrls(dom *goquery.Document, urlQueue *[]string, cfg *Configuration) error {
+func (c *Crawler) collectUrls(dom *goquery.Document, cfg *Configuration) error {
 	var err error
 	dom.Find("a[href]").Each(func(i int, s *goquery.Selection) {
 		if err != nil {
@@ -203,8 +234,8 @@ func (c *Crawler) collectUrls(dom *goquery.Document, urlQueue *[]string, cfg *Co
 			err = ErrExpectedHref
 			return
 		}
-		if len(*urlQueue) < kURLBacklogSize && strings.Contains(suburl, cfg.RootURL) {
-			*urlQueue = append(*urlQueue, suburl)
+		if strings.Contains(suburl, cfg.RootURL) && !strings.Contains(suburl, "/pdf/") && !strings.Contains(suburl, "/ps/") {
+            err = c.AddURLToQueue(suburl)
 		}
 	})
 	return err
