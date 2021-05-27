@@ -22,19 +22,19 @@ import (
 const kURLBacklogSize = 1000
 
 var (
-	ErrNoConfigs	 = fmt.Errorf("no configurations found")
+	ErrNoConfigs     = fmt.Errorf("no configurations found")
 	ErrExpectedHref  = fmt.Errorf("expected attribute href but it wasn't found")
 	ErrTooShortAbsId = fmt.Errorf("too short absId")
-	ErrEmptyTitle	= fmt.Errorf("parsed empty title")
+	ErrEmptyTitle    = fmt.Errorf("parsed empty title")
 	ErrEmptyAuthors  = fmt.Errorf("parsed empty authors")
-	ErrEmptyQueue	= fmt.Errorf("no more urls to crawl")
+	ErrEmptyQueue    = fmt.Errorf("no more urls to crawl")
 
-	chBuff				 = 10
-	getURLConcurrency	  = 1
+	chBuff                 = 10
+	getURLConcurrency      = 1
 	downloadURLConcurrency = 2
 	parseHTMLConcurrency   = 2
 	putArticleLConcurrency = 1
-	putURLConcurrency	  = 1
+	putURLConcurrency      = 1
 )
 
 
