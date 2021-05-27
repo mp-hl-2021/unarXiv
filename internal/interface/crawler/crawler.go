@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+    "io"
+    "net/http"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/gocolly/colly/v2"
 	"github.com/mp-hl-2021/unarXiv/internal/domain"
 	"github.com/mp-hl-2021/unarXiv/internal/domain/model"
 	"github.com/mp-hl-2021/unarXiv/internal/domain/repository"
@@ -92,23 +93,9 @@ func (c *Crawler) upsertArticle(article model.Article) (bool, error) {
 
 func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	fmt.Println("Crawling...")
-	collector := colly.NewCollector()
-	err := collector.Limit(&colly.LimitRule{
-		DomainGlob:  "*",
-		Delay:       time.Second / 4,
-		RandomDelay: time.Second / 4,
-	})
-	if err != nil {
-		return err
-	}
 
 	urlQueue := []string{cfg.RootURL}
 	var parseErr error
-
-	collector.OnResponse(c.responseProcessor(&parseErr, &urlQueue, &cfg))
-	collector.OnRequest(func(r *colly.Request) {
-		fmt.Println("Visiting", r.URL)
-	})
 
 	articlesCnt, err := c.getArticlesCount()
 	for err == nil && articlesCnt < cfg.DesiredArticleCount && len(urlQueue) > 0 && parseErr == nil {
@@ -116,7 +103,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 		totalURLsVisited.Inc()
 		urlQueue = urlQueue[1:]
 		timeStart := time.Now()
-		collector.Visit(u)
+        c.visitPage(&parseErr, &urlQueue, &cfg, u)
 		urlVisitDuration.Observe(time.Now().Sub(timeStart).Seconds())
 		articlesCnt, err = c.getArticlesCount()
 	}
@@ -126,37 +113,43 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	return parseErr
 }
 
-func (c *Crawler) responseProcessor(parseErr *error, urlQueue *[]string, cfg *Configuration) func(response *colly.Response) {
-	return func(response *colly.Response) {
-		dom, err := goquery.NewDocumentFromReader(bytes.NewReader(response.Body))
-		if err != nil {
-			parseErr = &err
-			return
-		}
-		err = c.collectUrls(dom, urlQueue, cfg)
-		if err != nil {
-			parseErr = &err
-			return
-		}
-		if strings.Contains(response.Request.URL.String(), "abs/") {
-			article, err := c.parseArticle(response, dom)
-			if err != nil {
-				parseErr = &err
-				return
-			}
-			up, err := c.upsertArticle(article)
-			if err != nil {
-				parseErr = &err
-				return
-			}
-			if up {
-				fmt.Println("Upserted article", article.Id)
-			}
-		}
-	}
+func (c *Crawler) visitPage(parseErr *error, urlQueue *[]string, cfg *Configuration, url string) {
+    fmt.Println("Visiting", url)
+    response, err := http.Get(url)
+    if err != nil {
+        parseErr = &err
+        return
+    }
+    body, err := io.ReadAll(response.Body)
+    defer response.Body.Close()
+    dom, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
+    if err != nil {
+        parseErr = &err
+        return
+    }
+    err = c.collectUrls(dom, urlQueue, cfg)
+    if err != nil {
+        parseErr = &err
+        return
+    }
+    if strings.Contains(response.Request.URL.String(), "abs/") {
+        article, err := c.parseArticle(response, dom)
+        if err != nil {
+            parseErr = &err
+            return
+        }
+        up, err := c.upsertArticle(article)
+        if err != nil {
+            parseErr = &err
+            return
+        }
+        if up {
+            fmt.Println("Upserted article", article.Id)
+        }
+    }
 }
 
-func (c *Crawler) parseArticle(response *colly.Response, dom *goquery.Document) (model.Article, error) {
+func (c *Crawler) parseArticle(response *http.Response, dom *goquery.Document) (model.Article, error) {
 	originalUrl := response.Request.URL.String()
 	absId, err := c.extractArticleId(originalUrl)
 	if err != nil {
