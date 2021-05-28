@@ -1,16 +1,16 @@
 package httpapi
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/mp-hl-2021/unarXiv/internal/domain/model"
+	"github.com/mp-hl-2021/unarXiv/internal/interface/prom"
 	"github.com/mp-hl-2021/unarXiv/internal/usecases"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	//"github.com/dgrijalva/jwt-go"
 )
 
@@ -61,6 +61,12 @@ func (a *HttpApi) Router() http.Handler {
 		HandlerFunc(a.extractAuth(a.postSearchQuerySubscriptionStatus)).Methods(http.MethodPost)
 	router.Path("/subscriptions/searches/{query}").
 		HandlerFunc(a.extractAuth(a.deleteSearchQuerySubscriptionStatus)).Methods(http.MethodDelete)
+
+	router.Handle("/metrics", promhttp.Handler())
+
+	router.Use(prom.Measurer())
+	router.Use(a.logger)
+	fmt.Println("test")
 
 	return router
 }
@@ -393,44 +399,5 @@ func (a *HttpApi) deleteSearchQuerySubscriptionStatus(w http.ResponseWriter, r *
 
 	if err := respondWithJSON(w, struct{}{}, http.StatusAccepted); err != nil {
 		log.Printf("Error happened while responding to PostSearchQuerySubscriptionStatus %v", err)
-	}
-}
-
-func extractTokenFromAuthHeader(r *http.Request) (usecases.AuthToken, error) {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return "", nil
-	}
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != bearer {
-		return "", errors.New("incorrect authorization header format")
-	}
-	return usecases.AuthToken(parts[1]), nil
-}
-
-func (a *HttpApi) extractIdFromHeader(r *http.Request) (model.UserId, error) {
-	token, err := extractTokenFromAuthHeader(r)
-	if err != nil {
-		return "", err
-	}
-	if token == "" {
-		return "", nil
-	}
-	userId, err := a.usecases.Decode(token)
-	if err != nil {
-		return "", err
-	}
-	return userId, nil
-}
-
-func (a *HttpApi) extractAuth(handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		userId, err := a.extractIdFromHeader(r)
-		if err != nil || userId == "" {
-			handler(w, r)
-			return
-			//TODO handle errors?
-		}
-		handler(w, r.WithContext(context.WithValue(r.Context(), contextKeyUserId, userId)))
 	}
 }

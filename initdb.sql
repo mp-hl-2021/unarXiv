@@ -42,10 +42,14 @@ CREATE TABLE IF NOT EXISTS CrawlerConfig (
     RootURL text primary key,
     DesiredArticleCount integer
 );
-INSERT INTO CrawlerConfig VALUES ('https://arxiv.org/', 50) ON CONFLICT DO NOTHING;
+INSERT INTO CrawlerConfig VALUES ('http://arxiv.org/', 1000) ON CONFLICT DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS CrawlStatus (
     URL text not null primary key,
-    LastAccess bigint not null,
-    LastHTTPStatus integer not null
+    Visited boolean not null,
+    LastAccess bigint,
+    LastHTTPStatus integer
 );
+
+INSERT INTO CrawlStatus (URL, Visited) VALUES ('http://arxiv.org/', false) ON CONFLICT DO NOTHING;
+
