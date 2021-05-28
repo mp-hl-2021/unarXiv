@@ -30,7 +30,6 @@ var (
 	ErrEmptyQueue    = fmt.Errorf("no more urls to crawl")
 
 	chBuff                 = 10
-	getURLConcurrency      = 1
 	downloadURLConcurrency = 2
 	parseHTMLConcurrency   = 2
 	putArticleLConcurrency = 1
@@ -264,22 +263,20 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	}()
 
 	var gwg sync.WaitGroup
-	gwg.Add(getURLConcurrency)
-	for i := 0; i < getURLConcurrency; i++ {
-		go func(out chan<- string) {
-			err := c.GetURLFromDB(ctx, out)
-			fmt.Fprintf(os.Stderr, "URLGetter %d stoped, reason: %s\n", i, err)
-			gwg.Done()
-			cancel()
-		}(URLChan)
-	}
+	gwg.Add(1)
+	go func(out chan<- string) {
+		err := c.GetURLFromDB(ctx, out)
+		fmt.Fprintf(os.Stderr, "URLGetter 1 stopped, reason: %s\n", err)
+		gwg.Done()
+		cancel()
+	}(URLChan)
 
 	var dwg sync.WaitGroup
 	dwg.Add(downloadURLConcurrency)
 	for i := 0; i < downloadURLConcurrency; i++ {
 		go func(in <-chan string, out chan<- *http.Response) {
 			err := c.DownloadURL(ctx, in, out)
-			fmt.Fprintf(os.Stderr, "URLDownloader %d stoped, reason: %s\n", i, err)
+			fmt.Fprintf(os.Stderr, "URLDownloader %d stopped, reason: %s\n", i, err)
 			dwg.Done()
 			cancel()
 		}(URLChan, HTMLChan)
@@ -290,7 +287,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	for i := 0; i < parseHTMLConcurrency; i++ {
 		go func(in <-chan *http.Response, outArticle chan<- model.Article, outURL chan<- string) {
 			err := c.ParseHTML(ctx, &cfg, in, outArticle, outURL)
-			fmt.Fprintf(os.Stderr, "HTMLParser %d stoped, reason: %s\n", i, err)
+			fmt.Fprintf(os.Stderr, "HTMLParser %d stopped, reason: %s\n", i, err)
 			parseWG.Done()
 			cancel()
 		}(HTMLChan, ArticleChan, NewURLChan)
@@ -301,7 +298,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	for i := 0; i < putURLConcurrency; i++ {
 		go func(in <-chan string) {
 			err := c.PutURLToDB(ctx, in)
-			fmt.Fprintf(os.Stderr, "URLPuter %d stoped, reason: %s\n", i, err)
+			fmt.Fprintf(os.Stderr, "URLPuter %d stopped, reason: %s\n", i, err)
 			putUrlWG.Done()
 			cancel()
 		}(NewURLChan)
@@ -312,7 +309,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	for i := 0; i < putArticleLConcurrency; i++ {
 		go func(in <-chan model.Article) {
 			err := c.PutArticleToDB(ctx, in)
-			fmt.Fprintf(os.Stderr, "ArticlePuter %d stoped, reason: %s\n", i, err)
+			fmt.Fprintf(os.Stderr, "ArticlePuter %d stopped, reason: %s\n", i, err)
 			putArticleWG.Done()
 			cancel()
 		}(ArticleChan)
