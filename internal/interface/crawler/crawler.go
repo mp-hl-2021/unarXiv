@@ -49,18 +49,22 @@ type Configuration struct {
 	DesiredArticleCount int
 }
 
-func (c *Crawler) getUnvisitedURL() (string, error) {
-	rows, err := c.db.Query("SELECT URL FROM CrawlStatus WHERE Visited = false LIMIT 1;")
+func (c *Crawler) getUnvisitedURLs() ([]string, error) {
+	rows, err := c.db.Query("SELECT URL FROM CrawlStatus WHERE Visited = false LIMIT 100;")
 	if err != nil {
-		return "", err
+		return []string{}, err
 	}
 	defer rows.Close()
+	urls := make([]string, 0, 100)
 	for rows.Next() {
 		url := ""
 		err := rows.Scan(&url)
-		return url, err
+		if err != nil {
+			return []string{}, err
+		}
+		urls = append(urls, url)
 	}
-	return "", ErrEmptyQueue
+	return urls, nil
 }
 
 func (c *Crawler) addURLToQueue(url string) error {
@@ -107,21 +111,30 @@ func (c *Crawler) getArticlesCount() (int, error) {
 }
 
 func (c *Crawler) getURLFromDB(ctx context.Context, URLChan chan<- string) error {
+	var urls []string
+	var err error
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			url, err := c.getUnvisitedURL()
-			if err == ErrEmptyQueue {
-				time.Sleep(time.Second)
-				continue
+			if len(urls) == 0 {
+				urls, err = c.getUnvisitedURLs()
+				if err != nil {
+					return err
+				}
+				if len(urls) == 0 {
+					time.Sleep(time.Second)
+					continue
+				}
 			}
+			url := urls[0]
+			urls = urls[1:]
+			totalURLsVisited.Inc()
+			err = c.dbVisitURL(url)
 			if err != nil {
 				return err
 			}
-			totalURLsVisited.Inc()
-			c.dbVisitURL(url)
 			URLChan <- url
 		}
 	}
