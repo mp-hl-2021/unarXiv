@@ -118,13 +118,14 @@ func (c *Crawler) GetURLFromDB(ctx context.Context, URLChan chan<- string) error
 			url, err := c.GetUnvisitedURL()
 			if err == ErrEmptyQueue {
 				time.Sleep(time.Second)
-			} else if err != nil {
-				return err
-			} else {
-				totalURLsVisited.Inc()
-				c.DBVisitURL(url)
-				URLChan <- url
+				continue
 			}
+			if err != nil {
+				return err
+			}
+			totalURLsVisited.Inc()
+			c.DBVisitURL(url)
+			URLChan <- url
 		}
 	}
 }
