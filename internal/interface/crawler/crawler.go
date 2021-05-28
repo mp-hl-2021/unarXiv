@@ -130,7 +130,6 @@ func (c *Crawler) getURLFromDB(ctx context.Context, URLChan chan<- string) error
 			}
 			url := urls[0]
 			urls = urls[1:]
-			totalURLsVisited.Inc()
 			err = c.dbVisitURL(url)
 			if err != nil {
 				return err
@@ -151,6 +150,7 @@ func (c *Crawler) downloadURL(ctx context.Context, URLChan <-chan string, HTMLCh
 			if err != nil {
 				return err
 			}
+			totalURLsVisited.Inc()
 			err = c.dbUpdateURLInfo(url, response.StatusCode)
 			if err != nil {
 				return err
