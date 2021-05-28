@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/brianvoe/gofakeit/v6"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,6 +19,8 @@ var config = struct {
 	address          string
 	concurrencyLevel int
 }{}
+
+var queries = []string{"plasma", "derivative", "nuclear", "learning", "theorem", "aspect", "entropy"}
 
 func init() {
 	address := flag.String("address", "http://localhost:8080", "chat address")
@@ -68,7 +71,12 @@ func worker(ctx context.Context, c client) error {
 	for {
 		select {
 		default:
-			_, err := c.createAccount(ctx, gofakeit.Username() + gofakeit.DigitN(9), gofakeit.Password(true, true, true, false, false, 16))
+			var err error
+			if rand.Float32() < 0.7 {
+				_, err = c.createAccount(ctx, gofakeit.Username()+gofakeit.DigitN(3), gofakeit.Password(true, true, true, false, false, 16))
+			} else {
+				_, err = c.search(ctx, queries[rand.Intn(len(queries))])
+			}
 			if err != nil {
 				fmt.Println("request failed:", err)
 			}
@@ -108,3 +116,18 @@ func (c client) createAccount(ctx context.Context, login, password string) (stri
 	return resp.Header.Get("Location"), nil
 }
 
+func (c client) search(ctx context.Context, query string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, config.address + "/search/" + query, nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := c.c.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to search: %v", resp.Status)
+	}
+	return resp.Header.Get("Location"), nil
+}
