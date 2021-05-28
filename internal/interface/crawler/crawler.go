@@ -50,12 +50,12 @@ type Configuration struct {
 }
 
 func (c *Crawler) getUnvisitedURLs() ([]string, error) {
-	rows, err := c.db.Query("SELECT URL FROM CrawlStatus WHERE Visited = false LIMIT 100;")
+	rows, err := c.db.Query("SELECT URL FROM CrawlStatus WHERE Visited = false LIMIT 100;") // todo: fix magic number. probably in the next life
 	if err != nil {
 		return []string{}, err
 	}
 	defer rows.Close()
-	urls := make([]string, 0, 100)
+	urls := make([]string, 0, 100) // todo: fix magic number. probably in the next life
 	for rows.Next() {
 		url := ""
 		err := rows.Scan(&url)
