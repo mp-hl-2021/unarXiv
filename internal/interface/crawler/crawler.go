@@ -19,8 +19,6 @@ import (
 	"time"
 )
 
-const kURLBacklogSize = 1000
-
 var (
 	ErrNoConfigs     = fmt.Errorf("no configurations found")
 	ErrExpectedHref  = fmt.Errorf("expected attribute href but it wasn't found")
@@ -51,7 +49,7 @@ type Configuration struct {
 	DesiredArticleCount int
 }
 
-func (c *Crawler) GetUnvisitedURL() (string, error) {
+func (c *Crawler) getUnvisitedURL() (string, error) {
 	rows, err := c.db.Query("SELECT URL FROM CrawlStatus WHERE Visited = false LIMIT 1;")
 	if err != nil {
 		return "", err
@@ -65,17 +63,17 @@ func (c *Crawler) GetUnvisitedURL() (string, error) {
 	return "", ErrEmptyQueue
 }
 
-func (c *Crawler) AddURLToQueue(url string) error {
+func (c *Crawler) addURLToQueue(url string) error {
 	_, err := c.db.Exec("INSERT INTO CrawlStatus (URL, Visited) VALUES ($1, false) ON CONFLICT DO NOTHING;", url)
 	return err
 }
 
-func (c *Crawler) DBVisitURL(url string) error {
+func (c *Crawler) dbVisitURL(url string) error {
 	_, err := c.db.Exec("UPDATE CrawlStatus SET Visited = true where URL = $1;", url)
 	return err
 }
 
-func (c *Crawler) DBUpdateURLInfo(url string, HTTPStatus int) error {
+func (c *Crawler) dbUpdateURLInfo(url string, HTTPStatus int) error {
 	_, err := c.db.Exec("UPDATE CrawlStatus SET LastAccess = $1, LastHTTPStatus = $2 where URL = $3;", utils.Uint64Time(time.Now()), HTTPStatus, url)
 	return err
 }
@@ -108,13 +106,13 @@ func (c *Crawler) getArticlesCount() (int, error) {
 	return 0, fmt.Errorf("unexpected query result")
 }
 
-func (c *Crawler) GetURLFromDB(ctx context.Context, URLChan chan<- string) error {
+func (c *Crawler) getURLFromDB(ctx context.Context, URLChan chan<- string) error {
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			url, err := c.GetUnvisitedURL()
+			url, err := c.getUnvisitedURL()
 			if err == ErrEmptyQueue {
 				time.Sleep(time.Second)
 				continue
@@ -123,13 +121,13 @@ func (c *Crawler) GetURLFromDB(ctx context.Context, URLChan chan<- string) error
 				return err
 			}
 			totalURLsVisited.Inc()
-			c.DBVisitURL(url)
+			c.dbVisitURL(url)
 			URLChan <- url
 		}
 	}
 }
 
-func (c *Crawler) DownloadURL(ctx context.Context, URLChan <-chan string, HTMLChan chan<- *http.Response) error {
+func (c *Crawler) downloadURL(ctx context.Context, URLChan <-chan string, HTMLChan chan<- *http.Response) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -140,7 +138,7 @@ func (c *Crawler) DownloadURL(ctx context.Context, URLChan <-chan string, HTMLCh
 			if err != nil {
 				return err
 			}
-			err = c.DBUpdateURLInfo(url, response.StatusCode)
+			err = c.dbUpdateURLInfo(url, response.StatusCode)
 			if err != nil {
 				return err
 			}
@@ -150,7 +148,7 @@ func (c *Crawler) DownloadURL(ctx context.Context, URLChan <-chan string, HTMLCh
 	}
 }
 
-func (c *Crawler) ParseHTML(ctx context.Context, cfg *Configuration, HTMLChan <-chan *http.Response, ArticleChan chan<- model.Article, NewURLChan chan<- string) error {
+func (c *Crawler) parseHTML(ctx context.Context, cfg *Configuration, HTMLChan <-chan *http.Response, ArticleChan chan<- model.Article, NewURLChan chan<- string) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -180,13 +178,13 @@ func (c *Crawler) ParseHTML(ctx context.Context, cfg *Configuration, HTMLChan <-
 	}
 }
 
-func (c *Crawler) PutURLToDB(ctx context.Context, NewURLChan <-chan string) error {
+func (c *Crawler) putURLToDB(ctx context.Context, NewURLChan <-chan string) error {
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case url := <-NewURLChan:
-			err := c.AddURLToQueue(url)
+			err := c.addURLToQueue(url)
 			if err != nil {
 				return err
 			}
@@ -194,7 +192,7 @@ func (c *Crawler) PutURLToDB(ctx context.Context, NewURLChan <-chan string) erro
 	}
 }
 
-func (c *Crawler) PutArticleToDB(ctx context.Context, ArticleChan <-chan model.Article) error {
+func (c *Crawler) putArticleToDB(ctx context.Context, ArticleChan <-chan model.Article) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -265,7 +263,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	var gwg sync.WaitGroup
 	gwg.Add(1)
 	go func(out chan<- string) {
-		err := c.GetURLFromDB(ctx, out)
+		err := c.getURLFromDB(ctx, out)
 		fmt.Fprintf(os.Stderr, "URLGetter 1 stopped, reason: %s\n", err)
 		gwg.Done()
 		cancel()
@@ -275,7 +273,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	dwg.Add(downloadURLConcurrency)
 	for i := 0; i < downloadURLConcurrency; i++ {
 		go func(in <-chan string, out chan<- *http.Response) {
-			err := c.DownloadURL(ctx, in, out)
+			err := c.downloadURL(ctx, in, out)
 			fmt.Fprintf(os.Stderr, "URLDownloader %d stopped, reason: %s\n", i, err)
 			dwg.Done()
 			cancel()
@@ -286,7 +284,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	parseWG.Add(parseHTMLConcurrency)
 	for i := 0; i < parseHTMLConcurrency; i++ {
 		go func(in <-chan *http.Response, outArticle chan<- model.Article, outURL chan<- string) {
-			err := c.ParseHTML(ctx, &cfg, in, outArticle, outURL)
+			err := c.parseHTML(ctx, &cfg, in, outArticle, outURL)
 			fmt.Fprintf(os.Stderr, "HTMLParser %d stopped, reason: %s\n", i, err)
 			parseWG.Done()
 			cancel()
@@ -297,7 +295,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	putUrlWG.Add(putURLConcurrency)
 	for i := 0; i < putURLConcurrency; i++ {
 		go func(in <-chan string) {
-			err := c.PutURLToDB(ctx, in)
+			err := c.putURLToDB(ctx, in)
 			fmt.Fprintf(os.Stderr, "URLPuter %d stopped, reason: %s\n", i, err)
 			putUrlWG.Done()
 			cancel()
@@ -308,7 +306,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	putArticleWG.Add(putArticleLConcurrency)
 	for i := 0; i < putArticleLConcurrency; i++ {
 		go func(in <-chan model.Article) {
-			err := c.PutArticleToDB(ctx, in)
+			err := c.putArticleToDB(ctx, in)
 			fmt.Fprintf(os.Stderr, "ArticlePuter %d stopped, reason: %s\n", i, err)
 			putArticleWG.Done()
 			cancel()
