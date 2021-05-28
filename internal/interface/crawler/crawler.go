@@ -309,7 +309,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	for i := 0; i < putURLConcurrency; i++ {
 		go func(in <-chan string) {
 			err := c.putURLToDB(ctx, in)
-			fmt.Fprintf(os.Stderr, "URLPuter %d stopped, reason: %s\n", i, err)
+			fmt.Fprintf(os.Stderr, "URLPutter %d stopped, reason: %s\n", i, err)
 			putUrlWG.Done()
 			cancel()
 		}(NewURLChan)
@@ -320,7 +320,7 @@ func (c *Crawler) CrawlArticles(cfg Configuration) error {
 	for i := 0; i < putArticleLConcurrency; i++ {
 		go func(in <-chan model.Article) {
 			err := c.putArticleToDB(ctx, in)
-			fmt.Fprintf(os.Stderr, "ArticlePuter %d stopped, reason: %s\n", i, err)
+			fmt.Fprintf(os.Stderr, "ArticlePutter %d stopped, reason: %s\n", i, err)
 			putArticleWG.Done()
 			cancel()
 		}(ArticleChan)
